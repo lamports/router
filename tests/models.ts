@@ -14,6 +14,7 @@ export interface NftAccountTracker {
 
 export interface NftSubAccount {
     nftSubAccount : PublicKey;
+    nftSubProgramId : PublicKey;
     currentCount: number;
 }
 

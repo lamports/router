@@ -16,6 +16,10 @@ describe('router', () => {
   const provider : anchor.Provider = anchor.Provider.local(); 
   anchor.setProvider(provider);
   const routerAccount: Keypair  = anchor.web3.Keypair.generate();
+
+  const priceInLamports = 1 * LAMPORTS_PER_SOL;
+  const goLiveDate = Math.round(new Date().getTime() / 1000) + 2000;
+  
   const program = anchor.workspace.Router;
 
   it('Is initialized!', async () => {
@@ -36,17 +40,18 @@ describe('router', () => {
   });
 
   it("should update configuration", async () => {
-    const priceInLamports = 1 * LAMPORTS_PER_SOL;
-    const goLiveDate = Math.round(new Date().getTime() / 1000) + 2000;
+    const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
+    const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
     const tx = await program.rpc.updateConfig(
     {
       data : {
-        currentIndex : 1,
+        currentIndex : 20,
         subAccounts : [
           {
-            nftSubAccount : anchor.web3.Keypair.generate().publicKey,
-            currentCount : 1,
-        }
+            nftSubAccount : nftSubAccount,
+            nftSubProgramId : nftSubProgramId,
+            currentCount : 100,
+          }
       ]
       },
       authority : provider.wallet.publicKey,
@@ -65,9 +70,44 @@ describe('router', () => {
     const routerData:RouterData = await getRouterData(program,routerAccount);
     assert.ok(routerData.config.price === priceInLamports);
     assert.ok(routerData.config.goLiveDate === goLiveDate); 
+    assert.ok(routerData.data.subAccounts[0].nftSubAccount.equals(nftSubAccount));
+    assert.ok(routerData.data.subAccounts[0].nftSubProgramId.equals(nftSubProgramId));
+    assert.ok(routerData.data.currentIndex === 20);
+    assert.ok(routerData.data.subAccounts[0].currentCount === 100);
     assert.isString("tr_test", tx);
-
   });
+
+  // it("should not allow updating account data with different signer", async() => {
+  //   expect(await program.rpc.updateConfig(
+  //     {
+  //       data : {
+  //         currentIndex : 1,
+  //         subAccounts : [
+  //           {
+  //             nftSubAccount : anchor.web3.Keypair.generate().publicKey,
+  //             currentCount : 1,
+  //         }
+  //       ]
+  //       },
+  //       authority : provider.wallet.publicKey,
+  //       config : {
+  //         price : priceInLamports,
+  //         goLiveDate : goLiveDate
+  
+  //       }
+  //     },
+  //     {
+  //       accounts : {
+  //         routerAccount : routerAccount.publicKey,
+  //         authority : routerAccount.publicKey,
+  //       }
+  //     })).to.be.a("Error: Signature verification failed");
+
+    
+  // });
+
+
+
 
 });
 

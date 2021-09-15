@@ -11,11 +11,19 @@ pub mod router {
         Ok(())
     }
 
-    pub fn update_config(ctx: Context<UpdateConfiguration>, data: RouterData) -> ProgramResult {
+    pub fn update_config(
+        ctx: Context<UpdateConfiguration>,
+        input_data: RouterData,
+    ) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let config = &mut router_account.config;
-        config.price = data.config.price;
-        config.go_live_date = data.config.go_live_date;
+        config.price = input_data.config.price;
+        config.go_live_date = input_data.config.go_live_date;
+
+        let account_data = &mut router_account.data;
+        account_data.current_index = input_data.data.current_index;
+        account_data.sub_accounts = input_data.data.sub_accounts;
+
         msg!("Router config data {}", &router_account.config.go_live_date);
         Ok(())
     }
@@ -46,6 +54,7 @@ pub struct NftAccountTracker {
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftSubAccount {
     pub nft_sub_account: Pubkey,
+    pub nft_sub_program_id: Pubkey,
     pub current_count: u16, // tracks which pubkey needs nft
 }
 
