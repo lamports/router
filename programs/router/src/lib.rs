@@ -27,6 +27,17 @@ pub mod router {
         msg!("Router config data {}", &router_account.config.go_live_date);
         Ok(())
     }
+
+    pub fn add_nft_sub_account(
+        ctx: Context<UpdateNftSubAccount>,
+        input_data: NftSubAccount,
+    ) -> ProgramResult {
+        let router_account = &mut ctx.accounts.router_account;
+        let nft_vector = &mut router_account.data.sub_accounts;
+        nft_vector.push(input_data);
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -67,6 +78,14 @@ pub struct ConfigData {
 // update config data
 #[derive(Accounts)]
 pub struct UpdateConfiguration<'info> {
+    #[account(mut, has_one=authority)]
+    pub router_account: Account<'info, RouterData>,
+    #[account(signer)]
+    pub authority: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateNftSubAccount<'info> {
     #[account(mut, has_one=authority)]
     pub router_account: Account<'info, RouterData>,
     #[account(signer)]

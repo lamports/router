@@ -77,6 +77,34 @@ describe('router', () => {
     assert.isString("tr_test", tx);
   });
 
+
+    it("should add nft account into the vector" , async () => {
+      const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
+      const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
+      const tx = await program.rpc.addNftSubAccount(
+      {
+        nftSubAccount : nftSubAccount,
+        nftSubProgramId : nftSubProgramId,
+        currentCount : 0,
+      },
+      {
+        accounts : {
+          routerAccount : routerAccount.publicKey,
+          authority : provider.wallet.publicKey,
+        }
+      });
+
+      const routerData:RouterData = await getRouterData(program,routerAccount);
+      assert.ok(routerData.data.subAccounts.length === 2);
+      assert.ok(routerData.data.subAccounts[1].nftSubAccount.equals(nftSubAccount));
+      assert.ok(routerData.data.subAccounts[1].nftSubProgramId.equals(nftSubProgramId));
+
+      //console.log(routerData);
+
+
+    });
+
+
   // it("should not allow updating account data with different signer", async() => {
   //   expect(await program.rpc.updateConfig(
   //     {
