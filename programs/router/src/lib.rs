@@ -11,7 +11,12 @@ pub mod router {
         Ok(())
     }
 
-    pub fn update_config(ctx: Context<UpdateConfiguration>) -> ProgramResult {
+    pub fn update_config(ctx: Context<UpdateConfiguration>, data: RouterData) -> ProgramResult {
+        let router_account = &mut ctx.accounts.router_account;
+        let config = &mut router_account.config;
+        config.price = data.config.price;
+        config.go_live_date = data.config.go_live_date;
+        msg!("Router config data {}", &router_account.config.go_live_date);
         Ok(())
     }
 }
@@ -47,13 +52,14 @@ pub struct NftSubAccount {
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct ConfigData {
     pub price: u32,
-    pub go_live_date: Option<i64>,
+    pub go_live_date: u32,
 }
 
 // update config data
 #[derive(Accounts)]
 pub struct UpdateConfiguration<'info> {
-    #[account(mut , has_one = authority)]
+    #[account(mut, has_one=authority)]
     pub router_account: Account<'info, RouterData>,
+    #[account(signer)]
     pub authority: AccountInfo<'info>,
 }

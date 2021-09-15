@@ -19,5 +19,5 @@ export interface NftSubAccount {
 
 export interface ConfigData {
     price : number;
-    goLiveData : any;
+    goLiveDate : any;
 }
