@@ -39,54 +39,30 @@ describe('router', () => {
     
     const routerData:RouterData = await getRouterData(program,routerAccount);
     assert.ok(routerData.authority.equals(provider.wallet.publicKey));
+    assert.ok(routerData.wallet.equals(provider.wallet.publicKey))
     assert.isString("tr_test", tx);
   });
 
   it("should update configuration", async () => {
-    const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
-    const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
-    const tx = await program.rpc.updateConfig(
+    const tx = await program.rpc.updateConfig( 
     {
-      data : {
-        currentIndex : 20,
-        subAccounts : [
-          {
-            nftSubAccount : nftSubAccount,
-            nftSubProgramId : nftSubProgramId,
-            currentCount : 100,
-          }
-      ]
-      },
-      authority : provider.wallet.publicKey,
-      config : {
         price : priceInLamports,
         goLiveDate : new anchor.BN(secondsSinceEpoch),
         uuid : "123456",
-        itemAvailable : 10000
-
-      }
+        itemsAvailable : new anchor.BN(10000)
     },
     {
       accounts : {
         routerAccount : routerAccount.publicKey,
         authority : provider.wallet.publicKey,
-        //wallet : provider.wallet.publicKey
+        wallet : provider.wallet.publicKey
       }
     });
     const routerData:RouterData = await getRouterData(program,routerAccount);
-    assert.ok(routerData.config.price === priceInLamports);
+    assert.ok(routerData.config.price.toString() === priceInLamports.toString());
     assert.ok(routerData.config.goLiveDate.toString() === new anchor.BN(secondsSinceEpoch).toString()); 
-    assert.ok(routerData.data.subAccounts[0].nftSubAccount.equals(nftSubAccount));
-    assert.ok(routerData.data.subAccounts[0].nftSubProgramId.equals(nftSubProgramId));
-    assert.ok(routerData.data.currentIndex === 20);
-    assert.ok(routerData.data.subAccounts[0].currentCount === 100);
+    assert.ok(routerData.config.itemsAvailable.toString() === "10000");
     assert.isString("tr_test", tx);
-
-    
-
-    //console.log(routerData.config.goLiveDate);
-    //console.log(new anchor.BN(secondsSinceEpoch).toString());
-
   });
 
 
@@ -103,14 +79,14 @@ describe('router', () => {
         accounts : {
           routerAccount : routerAccount.publicKey,
           authority : provider.wallet.publicKey,
-          //wallet : provider.wallet.publicKey
+          wallet : provider.wallet.publicKey
         }
       });
 
       const routerData:RouterData = await getRouterData(program,routerAccount);
-      assert.ok(routerData.data.subAccounts.length === 2);
-      assert.ok(routerData.data.subAccounts[1].nftSubAccount.equals(nftSubAccount));
-      assert.ok(routerData.data.subAccounts[1].nftSubProgramId.equals(nftSubProgramId));
+      assert.ok(routerData.data.subAccounts.length === 1);
+      assert.ok(routerData.data.subAccounts[0].nftSubAccount.equals(nftSubAccount));
+      assert.ok(routerData.data.subAccounts[0].nftSubProgramId.equals(nftSubProgramId));
 
       //console.log(routerData);
 
@@ -156,7 +132,7 @@ describe('router', () => {
           let nftSubAccount : NftSubAccount = {
             nftSubAccount : anchor.web3.Keypair.generate().publicKey,
             nftSubProgramId :  anchor.web3.Keypair.generate().publicKey,
-            currentCount : 300 // because each account can store 300 pubkeys
+            currentSubAccountIndex : 300 // because each account can store 300 pubkeys
           }
 
           nftSubAccounts.push(nftSubAccount);
@@ -172,7 +148,7 @@ describe('router', () => {
           });
     
           const routerData:RouterData = await getRouterData(program,routerAccount);
-          assert.ok(routerData.data.subAccounts.length === 17);
+          assert.ok(routerData.data.subAccounts.length === 16);
 
     });
 
@@ -185,7 +161,7 @@ describe('router', () => {
         let nftSubAccount : NftSubAccount = {
           nftSubAccount : anchor.web3.Keypair.generate().publicKey,
           nftSubProgramId :  anchor.web3.Keypair.generate().publicKey,
-          currentCount : 300 
+          currentSubAccountIndex : 300 
         }
 
         nftSubAccounts.push(nftSubAccount);
@@ -201,7 +177,7 @@ describe('router', () => {
         });
   
         const routerData:RouterData = await getRouterData(program,routerAccount);
-        assert.ok(routerData.data.subAccounts.length === 32);
+        assert.ok(routerData.data.subAccounts.length === 31);
 
   });
 });
