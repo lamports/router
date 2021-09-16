@@ -43,51 +43,51 @@ pub mod router {
 #[derive(Accounts)]
 pub struct InitializeRouter<'info> {
     #[account(init, payer = user, space = (8+32+8+8+8+40*30) as usize )]
-    pub router_account: ProgramAccount<'info, RouterData>,
-    pub user: AccountInfo<'info>,
-    pub system_program: AccountInfo<'info>,
+    router_account: ProgramAccount<'info, RouterData>,
+    user: AccountInfo<'info>,
+    system_program: AccountInfo<'info>,
 }
 
 #[account]
 #[derive(Default)]
 pub struct RouterData {
-    pub data: NftAccountTracker,
-    pub authority: Pubkey,
-    pub config: ConfigData,
+    data: NftAccountTracker,
+    authority: Pubkey,
+    config: ConfigData,
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftAccountTracker {
-    pub current_index: u16, //tracks which program id to take in
+    current_index: u16, //tracks which program id to take in
     sub_accounts: Vec<NftSubAccount>,
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftSubAccount {
-    pub nft_sub_account: Pubkey,
-    pub nft_sub_program_id: Pubkey,
-    pub current_count: u16, // tracks which pubkey needs nft
+    nft_sub_account: Pubkey,
+    nft_sub_program_id: Pubkey,
+    current_count: u16, // tracks which pubkey needs nft
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct ConfigData {
-    pub price: u32,
-    pub go_live_date: u32,
+    price: u32,
+    go_live_date: u32,
 }
 
 // update config data
 #[derive(Accounts)]
 pub struct UpdateConfiguration<'info> {
     #[account(mut, has_one=authority)]
-    pub router_account: Account<'info, RouterData>,
+    router_account: Account<'info, RouterData>,
     #[account(signer)]
-    pub authority: AccountInfo<'info>,
+    authority: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct UpdateNftSubAccount<'info> {
     #[account(mut, has_one=authority)]
-    pub router_account: Account<'info, RouterData>,
+    router_account: Account<'info, RouterData>,
     #[account(signer)]
-    pub authority: AccountInfo<'info>,
+    authority: AccountInfo<'info>,
 }
