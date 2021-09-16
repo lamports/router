@@ -18,7 +18,9 @@ describe('router', () => {
   const routerAccount: Keypair  = anchor.web3.Keypair.generate();
 
   const priceInLamports = 1 * LAMPORTS_PER_SOL;
-  const goLiveDate = Math.round(new Date().getTime() / 1000) + 2000;
+  const date = Math.round(new Date().getTime() / 1000) + 2000;
+  const secondsSinceEpoch =  Date.now() / 1000;
+
   
   const program = anchor.workspace.Router;
 
@@ -28,7 +30,7 @@ describe('router', () => {
     const tx = await program.rpc.initializeRouter({
      accounts : {
       routerAccount : routerAccount.publicKey,
-      user : provider.wallet.publicKey,
+      payer : provider.wallet.publicKey,
       systemProgram : SystemProgram.programId
      },
      signers :[routerAccount]
@@ -57,7 +59,9 @@ describe('router', () => {
       authority : provider.wallet.publicKey,
       config : {
         price : priceInLamports,
-        goLiveDate : goLiveDate
+        goLiveDate : new anchor.BN(secondsSinceEpoch),
+        uuid : "123456",
+        itemAvailable : 10000
 
       }
     },
@@ -69,12 +73,18 @@ describe('router', () => {
     });
     const routerData:RouterData = await getRouterData(program,routerAccount);
     assert.ok(routerData.config.price === priceInLamports);
-    assert.ok(routerData.config.goLiveDate === goLiveDate); 
+    assert.ok(routerData.config.goLiveDate.toString() === new anchor.BN(secondsSinceEpoch).toString()); 
     assert.ok(routerData.data.subAccounts[0].nftSubAccount.equals(nftSubAccount));
     assert.ok(routerData.data.subAccounts[0].nftSubProgramId.equals(nftSubProgramId));
     assert.ok(routerData.data.currentIndex === 20);
     assert.ok(routerData.data.subAccounts[0].currentCount === 100);
     assert.isString("tr_test", tx);
+
+    
+
+    //console.log(routerData.config.goLiveDate);
+    //console.log(new anchor.BN(secondsSinceEpoch).toString());
+
   });
 
 

@@ -6,8 +6,9 @@ pub mod router {
     use super::*;
     pub fn initialize_router(ctx: Context<InitializeRouter>) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
-        let authority = &mut ctx.accounts.user;
+        let authority = &mut ctx.accounts.payer;
         router_account.authority = *authority.key;
+        //router_account.to_account_info().da
         Ok(())
     }
 
@@ -42,44 +43,46 @@ pub mod router {
 
 #[derive(Accounts)]
 pub struct InitializeRouter<'info> {
-    #[account(init, payer = user, space = (8+32+8+8+8+40*30) as usize )]
+    #[account(init, payer = payer, space = (8 + 30 *72 + 8 + 8 + 30 ) as usize)]
     router_account: ProgramAccount<'info, RouterData>,
-    user: AccountInfo<'info>,
+    payer: AccountInfo<'info>,
     system_program: AccountInfo<'info>,
 }
 
 #[account]
 #[derive(Default)]
 pub struct RouterData {
-    data: NftAccountTracker,
-    authority: Pubkey,
-    config: ConfigData,
+    data: NftAccountTracker, // nft tracker sum = 30 *72 + 8
+    authority: Pubkey,       // 8
+    config: ConfigData,      // config sum = 30
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftAccountTracker {
-    current_index: u16, //tracks which program id to take in
-    sub_accounts: Vec<NftSubAccount>,
+    current_index: u16,               //tracks which program id to take in // 8
+    sub_accounts: Vec<NftSubAccount>, //30 * nftsubaccount size // 30 * 72
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftSubAccount {
-    nft_sub_account: Pubkey,
-    nft_sub_program_id: Pubkey,
-    current_count: u16, // tracks which pubkey needs nft
+    nft_sub_account: Pubkey,    //32
+    nft_sub_program_id: Pubkey, //32
+    current_count: u16,         // tracks which pubkey needs nft //8
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct ConfigData {
-    price: u32,
-    go_live_date: u32,
+    price: u32,           //8
+    go_live_date: i64,    //8
+    uuid: String,         //6
+    items_available: u64, //8
 }
 
 // update config data
 #[derive(Accounts)]
 pub struct UpdateConfiguration<'info> {
     #[account(mut, has_one=authority)]
-    router_account: Account<'info, RouterData>,
+    router_account: ProgramAccount<'info, RouterData>,
     #[account(signer)]
     authority: AccountInfo<'info>,
 }
@@ -87,7 +90,9 @@ pub struct UpdateConfiguration<'info> {
 #[derive(Accounts)]
 pub struct UpdateNftSubAccount<'info> {
     #[account(mut, has_one=authority)]
-    router_account: Account<'info, RouterData>,
+    router_account: ProgramAccount<'info, RouterData>,
     #[account(signer)]
     authority: AccountInfo<'info>,
 }
+
+pub const CONFIG_ARRAY_LENGTH: usize = 8 + 32 + 8 + 8 + 8 + 40 * 30;
