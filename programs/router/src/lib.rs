@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
+mod utils;
+
 #[program]
 pub mod router {
     use super::*;
@@ -31,11 +33,14 @@ pub mod router {
 
     pub fn add_nft_sub_account(
         ctx: Context<UpdateNftSubAccount>,
-        input_data: NftSubAccount,
+        input_data: Vec<NftSubAccount>,
     ) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let nft_vector = &mut router_account.data.sub_accounts;
-        nft_vector.push(input_data);
+
+        for nft_account in input_data {
+            nft_vector.push(nft_account);
+        }
 
         Ok(())
     }
@@ -47,6 +52,8 @@ pub struct InitializeRouter<'info> {
     router_account: ProgramAccount<'info, RouterData>,
     payer: AccountInfo<'info>,
     system_program: AccountInfo<'info>,
+    #[account(constraint = (wallet.data_is_empty() && wallet.lamports() > 0))]
+    wallet: AccountInfo<'info>,
 }
 
 #[account]
@@ -96,3 +103,15 @@ pub struct UpdateNftSubAccount<'info> {
 }
 
 pub const CONFIG_ARRAY_LENGTH: usize = 8 + 32 + 8 + 8 + 8 + 40 * 30;
+
+#[error]
+pub enum ErrorCode {
+    #[msg("Account does not have correct owner!")]
+    IncorrectOwner,
+    #[msg("Account is not initialized!")]
+    Uninitialized,
+    #[msg("Not enough SOL to pay for this minting")]
+    NotEnoughSOL,
+    #[msg("Token transfer failed")]
+    TokenTransferFailed,
+}

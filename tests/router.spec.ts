@@ -8,7 +8,7 @@ import {
   TransactionInstruction} from "@solana/web3.js";
 import {assert, expect} from "chai";
 import BN from 'bn.js';
-import {RouterData} from "./models";
+import {NftSubAccount, RouterData} from "./models";
 import {getRouterData} from "./helper";
 
 describe('router', () => {
@@ -31,7 +31,8 @@ describe('router', () => {
      accounts : {
       routerAccount : routerAccount.publicKey,
       payer : provider.wallet.publicKey,
-      systemProgram : SystemProgram.programId
+      systemProgram : SystemProgram.programId,
+      wallet : provider.wallet.publicKey
      },
      signers :[routerAccount]
     });
@@ -69,6 +70,7 @@ describe('router', () => {
       accounts : {
         routerAccount : routerAccount.publicKey,
         authority : provider.wallet.publicKey,
+        //wallet : provider.wallet.publicKey
       }
     });
     const routerData:RouterData = await getRouterData(program,routerAccount);
@@ -88,19 +90,20 @@ describe('router', () => {
   });
 
 
-    it("should add nft account into the vector" , async () => {
+    it("should add nft account into the vault router" , async () => {
       const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
       const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
       const tx = await program.rpc.addNftSubAccount(
-      {
+      [{
         nftSubAccount : nftSubAccount,
         nftSubProgramId : nftSubProgramId,
         currentCount : 0,
-      },
+      }],
       {
         accounts : {
           routerAccount : routerAccount.publicKey,
           authority : provider.wallet.publicKey,
+          //wallet : provider.wallet.publicKey
         }
       });
 
@@ -145,8 +148,62 @@ describe('router', () => {
   // });
 
 
+    it("should be able to add 15 accounts into the router vault", async() => {
+        
+        let nftSubAccounts: Array<NftSubAccount> = [];
+
+        for(let i =0 ; i < 15; i++){
+          let nftSubAccount : NftSubAccount = {
+            nftSubAccount : anchor.web3.Keypair.generate().publicKey,
+            nftSubProgramId :  anchor.web3.Keypair.generate().publicKey,
+            currentCount : 300 // because each account can store 300 pubkeys
+          }
+
+          nftSubAccounts.push(nftSubAccount);
+        }
+
+        const tx = await program.rpc.addNftSubAccount(
+          nftSubAccounts,
+          {
+            accounts : {
+              routerAccount : routerAccount.publicKey,
+              authority : provider.wallet.publicKey,
+            }
+          });
+    
+          const routerData:RouterData = await getRouterData(program,routerAccount);
+          assert.ok(routerData.data.subAccounts.length === 17);
+
+    });
 
 
+    it("should be able to add another 15 accounts into the router vault", async() => {
+        
+      let nftSubAccounts: Array<NftSubAccount> = [];
+
+      for(let i =0 ; i < 15; i++){
+        let nftSubAccount : NftSubAccount = {
+          nftSubAccount : anchor.web3.Keypair.generate().publicKey,
+          nftSubProgramId :  anchor.web3.Keypair.generate().publicKey,
+          currentCount : 300 
+        }
+
+        nftSubAccounts.push(nftSubAccount);
+      }
+
+      const tx = await program.rpc.addNftSubAccount(
+        nftSubAccounts,
+        {
+          accounts : {
+            routerAccount : routerAccount.publicKey,
+            authority : provider.wallet.publicKey,
+          }
+        });
+  
+        const routerData:RouterData = await getRouterData(program,routerAccount);
+        assert.ok(routerData.data.subAccounts.length === 32);
+
+  });
 });
 
 
