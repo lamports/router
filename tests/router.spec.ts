@@ -22,6 +22,11 @@ describe('router', () => {
     )
   );
 
+  const signer2Wallet = anchor.web3.Keypair.fromSecretKey(
+    new Uint8Array(
+      JSON.parse(require("fs").readFileSync(process.env.SIGNER_2_WALLET, "utf8"))
+    )
+  );
 
 
   let program: anchor.Program = null;
@@ -74,7 +79,7 @@ describe('router', () => {
     const tx = await program.rpc.updateConfig( 
     {
         price : priceInLamports,
-        goLiveDate : new anchor.BN(secondsSinceEpoch),
+        goLiveDate : new anchor.BN(secondsSinceEpoch + 10000),
         uuid : "123456",
         itemsAvailable : new anchor.BN(10000)
     },
@@ -87,7 +92,7 @@ describe('router', () => {
     });
     const routerData:RouterData = await getRouterData(program,routerAccount);
     assert.ok(routerData.config.price.toString() === priceInLamports.toString());
-    assert.ok(routerData.config.goLiveDate.toString() === new anchor.BN(secondsSinceEpoch).toString()); 
+    assert.ok(routerData.config.goLiveDate.toString() === new anchor.BN(secondsSinceEpoch + 10000).toString()); 
     assert.ok(routerData.config.itemsAvailable.toString() === "10000");
     assert.isString("tr_test", tx);
   });
@@ -121,34 +126,30 @@ describe('router', () => {
   });
 
 
-  // it("should not allow updating account data with different signer", async() => {
-  //   expect(await program.rpc.updateConfig(
-  //     {
-  //       data : {
-  //         currentIndex : 1,
-  //         subAccounts : [
-  //           {
-  //             nftSubAccount : anchor.web3.Keypair.generate().publicKey,
-  //             currentCount : 1,
-  //         }
-  //       ]
-  //       },
-  //       authority : provider.wallet.publicKey,
-  //       config : {
-  //         price : priceInLamports,
-  //         goLiveDate : goLiveDate
-  
-  //       }
-  //     },
-  //     {
-  //       accounts : {
-  //         routerAccount : routerAccount.publicKey,
-  //         authority : routerAccount.publicKey,
-  //       }
-  //     })).to.be.a("Error: Signature verification failed");
-
+  it("should not allow updating account data with different signer", async() => {
+    let err:Error = null;
+    try{
     
-  // });
+      await program.rpc.updateConfig(
+        {
+          price : null,
+          goLiveDate : new anchor.BN(secondsSinceEpoch- 10000),
+          uuid : null,
+          itemsAvailable : null
+        },
+        {
+          accounts : {
+            routerAccount : routerAccount.publicKey,
+            authority : signer1Wallet.publicKey,
+          }
+        });
+    }
+    catch(error) {
+      err = error;
+    } 
+    expect("Signature verification failed").to.be.equals(err.message);
+    
+  });
 
 
   it("should be able to add 15 accounts into the router vault", async() => {
@@ -165,7 +166,7 @@ describe('router', () => {
         nftSubAccounts.push(nftSubAccount);
       }
 
-      const tx = await program.rpc.addNftSubAccount(
+      await program.rpc.addNftSubAccount(
         nftSubAccounts,
         {
           accounts : {
@@ -207,19 +208,74 @@ describe('router', () => {
       assert.ok(routerData.data.subAccounts.length === 31);
   });
 
+  it("Should not allow transfer if not go live yet", async() => {
+    let err = null;
+    try {
+      await program.rpc.addUserForMintingNft({
+        accounts : {
+          routerAccount : routerAccount.publicKey,
+          authority : provider.wallet.publicKey,
+          payer : signer1Wallet.publicKey,
+          wallet : provider.wallet.publicKey,
+          rent : anchor.web3.SYSVAR_RENT_PUBKEY,
+          clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
+          systemProgram : SystemProgram.programId
+        },
+        signers : [signer1Wallet]
+
+      });
+    }
+    catch(error) {
+      err = error;
+    }
+    //console.log(err);
+    expect("We are not live yet").to.be.equals(err.msg);
+  });
+
+
+  it("Authority : Should  allow transfer if not go live yet for authority", async() => {
+    const connection = anchor.getProvider().connection;
+    const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
+
+    await program.rpc.addUserForMintingNft({
+      accounts : {
+        routerAccount : routerAccount.publicKey,
+        authority : provider.wallet.publicKey,
+        payer : signer2Wallet.publicKey,
+        wallet : provider.wallet.publicKey,
+        rent : anchor.web3.SYSVAR_RENT_PUBKEY,
+        clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        systemProgram : SystemProgram.programId
+      },
+      signers : [signer2Wallet]
+
+    });
+    const  afterReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
+    expect(beforeReceiverBalance).to.be.greaterThan(afterReceiverBalance);
+  });
 
   it("Should add transfer sols to the router account", async() => {
-    const signer2Wallet = anchor.web3.Keypair.fromSecretKey(
-      new Uint8Array(
-        JSON.parse(require("fs").readFileSync(process.env.SIGNER_2_WALLET, "utf8"))
-      )
-    );
-
     const connection = anchor.getProvider().connection;
     const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
 
     const beforePayerBalance = await connection.getBalance(signer1Wallet.publicKey);
 
+      await program.rpc.updateConfig({
+        price : null,
+        goLiveDate : new anchor.BN(secondsSinceEpoch- 10000),
+        uuid : null,
+        itemsAvailable : null
+
+      },{
+        accounts : {
+          routerAccount : routerAccount.publicKey,
+          authority : provider.wallet.publicKey,
+          wallet : provider.wallet.publicKey
+        }
+
+      });
+
+      
       await program.rpc.addUserForMintingNft({
         accounts : {
           routerAccount : routerAccount.publicKey,
@@ -241,7 +297,14 @@ describe('router', () => {
       expect(afterReceiverBalance).to.be.greaterThan(beforeReceiverBalance);
       expect(afterPayerBalance).to.be.lessThan(beforePayerBalance);
 
+      //console.log(routerData);
+
   });
+
+
+  
+
+
 });
 
 

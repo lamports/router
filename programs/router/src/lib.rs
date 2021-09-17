@@ -26,10 +26,20 @@ pub mod router {
     ) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let config = &mut router_account.config;
-        config.price = input_data.price as u64;
-        config.go_live_date = input_data.go_live_date;
-        config.uuid = input_data.uuid;
-        config.items_available = input_data.items_available as u64;
+
+        if let Some(price) = input_data.price {
+            config.price = price as u64;
+        }
+
+        if let Some(go_live_date) = input_data.go_live_date{
+            config.go_live_date = go_live_date;
+        }
+        if let Some(uuid) = input_data.uuid {
+            config.uuid = uuid;
+        }
+        if let Some(items_available) = input_data.items_available {
+            config.items_available = items_available as u64;
+        }
 
        // msg!("Router config data {}", &router_account.config.go_live_date);
         Ok(())
@@ -55,12 +65,12 @@ pub mod router {
         let authority = &mut ctx.accounts.authority;
         let payer = &mut ctx.accounts.payer;
 
-        // if router_account.config.go_live_date > clock.unix_timestamp {
-        //     // only authority could mint before go live
-        //     if authority.key != payer.key {
-        //         return Err(ErrorCode::RouterNotLiveYet.into());
-        //     }
-        // }
+        if router_account.config.go_live_date > clock.unix_timestamp {
+            // only authority could mint before go live
+            if authority.key != payer.key {
+                return Err(ErrorCode::RouterNotLiveYet.into());
+            }
+        }
 
         if router_account.data.sub_accounts.len() >= 30
             && router_account
@@ -156,10 +166,10 @@ pub struct UpdateConfiguration<'info> {
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct UpdateConfigData {
-    price: u32,           //8 // but this is stored as u64
-    go_live_date: i64,    //8
-    uuid: String,         //6
-    items_available: u32, //8 // but this is stored as u64 
+    price: Option<u32>,           //8 // but this is stored as u64
+    go_live_date: Option<i64>,    //8
+    uuid: Option<String>,         //6
+    items_available: Option<u32>, //8 // but this is stored as u64 
 }
 
 
