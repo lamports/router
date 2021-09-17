@@ -1,7 +1,12 @@
 use anchor_lang::prelude::*;
+//use utils;
+use anchor_lang:: {
+    solana_program:: {system_program, program:: invoke , system_instruction }
+};
+
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-mod utils;
+pub mod utils;
 
 #[program]
 pub mod router {
@@ -44,18 +49,18 @@ pub mod router {
         Ok(())
     }
 
-    pub fn mint_one_nft(ctx: Context<MintNft>) -> ProgramResult {
+    pub fn add_user_for_minting_nft(ctx: Context<MintNft>) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let clock = &mut ctx.accounts.clock;
         let authority = &mut ctx.accounts.authority;
         let payer = &mut ctx.accounts.payer;
 
-        if router_account.config.go_live_date > clock.unix_timestamp {
-            // only authority could mint before go live
-            if authority.key != payer.key {
-                return Err(ErrorCode::RouterNotLiveYet.into());
-            }
-        }
+        // if router_account.config.go_live_date > clock.unix_timestamp {
+        //     // only authority could mint before go live
+        //     if authority.key != payer.key {
+        //         return Err(ErrorCode::RouterNotLiveYet.into());
+        //     }
+        // }
 
         if router_account.data.sub_accounts.len() >= 30
             && router_account
@@ -76,7 +81,25 @@ pub mod router {
 
         if payer.lamports() < router_account.config.price {
             return Err(ErrorCode::NotEnoughSOL.into());
-        }
+        } 
+
+
+        // transfer sols from user account to wallet of router
+        invoke(
+            &system_instruction::transfer(
+                &ctx.accounts.payer.key,
+                ctx.accounts.wallet.key,
+                router_account.config.price,
+            ),
+            &[
+                ctx.accounts.payer.clone(),
+                ctx.accounts.wallet.clone(),
+                ctx.accounts.system_program.clone(),
+            ],
+        )?; 
+
+        // add the user into the program account
+
 
         Ok(())
     }
@@ -131,6 +154,15 @@ pub struct UpdateConfiguration<'info> {
     authority: AccountInfo<'info>,
 }
 
+#[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
+pub struct UpdateConfigData {
+    price: u32,           //8 // but this is stored as u64
+    go_live_date: i64,    //8
+    uuid: String,         //6
+    items_available: u32, //8 // but this is stored as u64 
+}
+
+
 #[derive(Accounts)]
 pub struct UpdateNftSubAccount<'info> {
     #[account(mut, has_one=authority)]
@@ -153,6 +185,8 @@ pub struct MintNft<'info> {
     wallet: AccountInfo<'info>,
     rent: Sysvar<'info, Rent>,
     clock: Sysvar<'info, Clock>,
+    #[account(address = system_program::ID)]
+    system_program: AccountInfo<'info>,
 }
 
 pub const CONFIG_ARRAY_LENGTH: usize = 8 + 32 + 8 + 8 + 8 + 40 * 30;
@@ -173,10 +207,3 @@ pub enum ErrorCode {
     SaleIsOver,
 }
 
-#[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
-pub struct UpdateConfigData {
-    price: u32,           //8 // but this is stored as u64
-    go_live_date: i64,    //8
-    uuid: String,         //6
-    items_available: u32, //8 // but this is stored as u64 
-}
