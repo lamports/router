@@ -227,6 +227,7 @@ describe('router', () => {
     }
     catch(error) {
       err = error;
+      console.log(err);
     }
     //console.log(err);
     expect("We are not live yet").to.be.equals(err.msg);
@@ -260,7 +261,7 @@ describe('router', () => {
     
   });
 
-  it("Should add transfer sols to the router account", async() => {
+  it("Should allow transfer sols to the router account", async() => {
     try {
       const connection = anchor.getProvider().connection;
       const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
@@ -269,7 +270,7 @@ describe('router', () => {
   
         await program.rpc.updateConfig({
           price : null,
-          goLiveDate : new anchor.BN(secondsSinceEpoch- 10000),
+          goLiveDate : new anchor.BN(secondsSinceEpoch- 100000),
           uuid : null,
           itemsAvailable : null
   
