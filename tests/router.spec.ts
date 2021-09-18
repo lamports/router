@@ -10,24 +10,14 @@ import {
 import {assert, expect} from "chai";
 import BN from 'bn.js';
 import {NftSubAccount, RouterData, Workspace} from "./models";
-import {getRouterData, getDefaultAnchorWorkspace, getCustomWorkspace} from "./helper";
+import {getRouterData, getDefaultAnchorWorkspace, getCustomWorkspace, getSigner1Wallet, getSigner2Wallet} from "./helper";
 
 
 
 describe('router', () => {
 
-  const signer1Wallet = anchor.web3.Keypair.fromSecretKey(
-    new Uint8Array(
-      JSON.parse(require("fs").readFileSync(process.env.SIGNER_1_WALLET, "utf8"))
-    )
-  );
-
-  const signer2Wallet = anchor.web3.Keypair.fromSecretKey(
-    new Uint8Array(
-      JSON.parse(require("fs").readFileSync(process.env.SIGNER_2_WALLET, "utf8"))
-    )
-  );
-
+  const signer1Wallet = getSigner1Wallet();
+  const signer2Wallet = getSigner2Wallet();
 
   let program: anchor.Program = null;
   let provider: anchor.Provider = null;
@@ -38,7 +28,7 @@ describe('router', () => {
   else{
     // make sure signer 2 has some sols
     // make sure signer 1 has some sols 
-    workspace = getCustomWorkspace();
+    workspace = getCustomWorkspace(signer2Wallet, process.env.ROUTER_IDL_PATH, process.env.ROUTER_PROGRAM_ID);
   }
 
     program = workspace.program;
