@@ -9,7 +9,7 @@ export const getRouterData = async (program : any, account : Keypair ) : Promise
 
 
 
-export const getDefaultAnchorWorkspace = () : Workspace => {
+export const getDefaultRouterAnchorWorkspace = () : Workspace => {
     const provider : anchor.Provider = anchor.Provider.local(); 
     const program = anchor.workspace.Router;
 
@@ -19,30 +19,54 @@ export const getDefaultAnchorWorkspace = () : Workspace => {
     }
 }
 
-export const getCustomWorkspace = () : Workspace => {
-    const signer2Wallet = anchor.web3.Keypair.fromSecretKey(
-        new Uint8Array(
-          JSON.parse(require("fs").readFileSync(process.env.SIGNER_2_WALLET, "utf8"))
-        )
-    );
+// export const getCustomRouterWorkspace = () : Workspace => {
+//     const signer2Wallet = anchor.web3.Keypair.fromSecretKey(
+//         new Uint8Array(
+//           JSON.parse(require("fs").readFileSync(process.env.SIGNER_2_WALLET, "utf8"))
+//         )
+//     );
 
+//     const connection = new anchor.web3.Connection(
+//         process.env.LOCAL_NET,
+//         "recent"
+//     );
+//     const programId = new anchor.web3.PublicKey(
+//     process.env.DEPLOYED_PROGRAM_ID
+//     );
+//     const idl = JSON.parse(require('fs').readFileSync(process.env.IDL_PATH, 'utf8'));
+//     const walletWrapper = new anchor.Wallet(signer2Wallet);
+//     const provider = new anchor.Provider(connection, walletWrapper, {
+//     preflightCommitment: "recent",
+//     });
+//     const program = new anchor.Program(idl, programId, provider);
+
+//     return {
+//         provider : provider,
+//         program : program
+//     }
+// }
+
+export const getCustomWorkspace = (wallet: Keypair, idlPath : string, programIdStr : string) : Workspace => {
+   
     const connection = new anchor.web3.Connection(
         process.env.LOCAL_NET,
         "recent"
     );
-    const programId = new anchor.web3.PublicKey(
-    process.env.DEPLOYED_PROGRAM_ID
-    );
-    const idl = JSON.parse(require('fs').readFileSync(process.env.IDL_PATH, 'utf8'));
-    const walletWrapper = new anchor.Wallet(signer2Wallet);
+    const walletWrapper = new anchor.Wallet(wallet);
     const provider = new anchor.Provider(connection, walletWrapper, {
     preflightCommitment: "recent",
     });
+
+    const idl = JSON.parse(require('fs').readFileSync(idlPath, 'utf8'));
+    const programId = new anchor.web3.PublicKey(
+        programIdStr
+    );
     const program = new anchor.Program(idl, programId, provider);
 
     return {
         provider : provider,
         program : program
     }
-}
+} 
+
 

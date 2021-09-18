@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 use anchor_lang:: {
     solana_program:: {system_program, program:: invoke , system_instruction }
 };
+use user_vault::{self, UserVaultData};
+use user_vault::program::UserVault;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -59,7 +61,7 @@ pub mod router {
         Ok(())
     }
 
-    pub fn add_user_for_minting_nft(ctx: Context<MintNft>) -> ProgramResult {
+    pub fn add_user_for_minting_nft(ctx: Context<MintNft>, allow_multiple_minting: bool) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let clock = &mut ctx.accounts.clock;
         let authority = &mut ctx.accounts.authority;
@@ -108,8 +110,24 @@ pub mod router {
             ],
         )?; 
 
+    
         // add the user into the program account
-
+        /* let user_vault = &mut ctx.accounts.user_vault;
+        // if user_vault.authority != *authority.key  {
+        //     return Err(ErrorCode::IncorrectOwner.into());
+        // }  
+        
+        // add the user into the program account
+        let user_pub_keys = &mut user_vault.users_pub_key;
+        let payer_key = *ctx.accounts.payer.key;
+        if allow_multiple_minting {
+            user_pub_keys.push(payer_key);
+        }
+        else {
+            if let Some(_) = user_pub_keys.into_iter().find(|user_key| **user_key == payer_key) {
+                return Err(ErrorCode::AlreadyMinted.into());
+            }
+        }*/
 
         Ok(())
     }
@@ -187,6 +205,9 @@ pub struct UpdateNftSubAccount<'info> {
 pub struct MintNft<'info> {
     #[account(mut, has_one= authority)]
     router_account: ProgramAccount<'info, RouterData>,
+    #[account(mut)]
+    user_vault: CpiAccount<'info, UserVaultData>,
+    user_vault_program: Program<'info, UserVault>,
     #[account(signer)]
     authority: AccountInfo<'info>,
     #[account(mut, signer)]
@@ -215,5 +236,7 @@ pub enum ErrorCode {
     RouterNotLiveYet,
     #[msg("Sale is over")]
     SaleIsOver,
+    #[msg("User already minted an NFT")]
+    AlreadyMinted
 }
 
