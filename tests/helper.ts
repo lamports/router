@@ -20,9 +20,9 @@ export const getDefaultAnchorWorkspace = () : Workspace => {
 }
 
 export const getCustomWorkspace = () : Workspace => {
-    const signer2Wallet = anchor.web3.Keypair.fromSecretKey(
+    const signer1Wallet = anchor.web3.Keypair.fromSecretKey(
         new Uint8Array(
-          JSON.parse(require("fs").readFileSync(process.env.SIGNER_2_WALLET, "utf8"))
+          JSON.parse(require("fs").readFileSync(process.env.SIGNER_1_WALLET, "utf8"))
         )
     );
 
@@ -34,7 +34,7 @@ export const getCustomWorkspace = () : Workspace => {
     process.env.DEPLOYED_PROGRAM_ID
     );
     const idl = JSON.parse(require('fs').readFileSync(process.env.IDL_PATH, 'utf8'));
-    const walletWrapper = new anchor.Wallet(signer2Wallet);
+    const walletWrapper = new anchor.Wallet(signer1Wallet);
     const provider = new anchor.Provider(connection, walletWrapper, {
     preflightCommitment: "recent",
     });

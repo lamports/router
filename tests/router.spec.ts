@@ -12,7 +12,14 @@ import BN from 'bn.js';
 import {NftSubAccount, RouterData, Workspace} from "./models";
 import {getRouterData, getDefaultAnchorWorkspace, getCustomWorkspace} from "./helper";
 
+const routerAccount: Keypair  = anchor.web3.Keypair.generate();
+// const getRouteAccount = () =>{
+//   if(routerAccount)
+// } 
 
+const getRouterAccount = () => {
+  return routerAccount;
+}
 
 describe('router', () => {
 
@@ -46,7 +53,6 @@ describe('router', () => {
 
 
   
-  const routerAccount: Keypair  = anchor.web3.Keypair.generate();
   const priceInLamports = 4 * LAMPORTS_PER_SOL;
   const date = Math.round(new Date().getTime() / 1000) + 2000;
   const secondsSinceEpoch =  Date.now() / 1000;
@@ -55,21 +61,21 @@ describe('router', () => {
   anchor.setProvider(provider);
 
 
+  const userVaultAccount:Keypair = anchor.web3.Keypair.generate();
 
   it('Is initialized!', async () => {
-    // Add your test here.
     
     const tx = await program.rpc.initializeRouter({
      accounts : {
-      routerAccount : routerAccount.publicKey,
+      routerAccount : getRouterAccount().publicKey, 
       payer : provider.wallet.publicKey,
       systemProgram : SystemProgram.programId,
       wallet : provider.wallet.publicKey
      },
-     signers :[routerAccount]
+     signers :[getRouterAccount()]
     });
     
-    const routerData:RouterData = await getRouterData(program,routerAccount);
+    const routerData:RouterData = await getRouterData(program,getRouterAccount());
     assert.ok(routerData.authority.equals(provider.wallet.publicKey));
     assert.ok(routerData.wallet.equals(provider.wallet.publicKey))
     assert.isString("tr_test", tx);
@@ -98,7 +104,7 @@ describe('router', () => {
   });
 
 
-  it("should add nft account into the vault router" , async () => {
+  /*it("should add nft account into the vault router" , async () => {
     const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
     const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
     const tx = await program.rpc.addNftSubAccount(
@@ -206,66 +212,69 @@ describe('router', () => {
 
       const routerData:RouterData = await getRouterData(program,routerAccount);
       assert.ok(routerData.data.subAccounts.length === 31);
-  });
+  });*/
 
-  it("Should not allow transfer if not go live yet", async() => {
-    let err = null;
-    try {
-      await program.rpc.addUserForMintingNft({
-        accounts : {
-          routerAccount : routerAccount.publicKey,
-          authority : provider.wallet.publicKey,
-          payer : signer1Wallet.publicKey,
-          wallet : provider.wallet.publicKey,
-          rent : anchor.web3.SYSVAR_RENT_PUBKEY,
-          clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
-          systemProgram : SystemProgram.programId
-        },
-        signers : [signer1Wallet]
+  // it("Should not allow transfer if not go live yet", async() => {
+  //   let err = null;
+  //   try {
+  //     await program.rpc.addUserForMintingNft(true,{
+  //       accounts : {
+  //         routerAccount : routerAccount.publicKey,
+  //         authority : provider.wallet.publicKey,
+  //         payer : signer2Wallet.publicKey,
+  //         wallet : provider.wallet.publicKey,
+  //         rent : anchor.web3.SYSVAR_RENT_PUBKEY,
+  //         clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
+  //         systemProgram : SystemProgram.programId,
+  //        // userVault : userVaultAccount.publicKey
+  //       },
+  //       signers : [signer2Wallet]
 
-      });
-    }
-    catch(error) {
-      err = error;
-    }
-    //console.log(err);
-    expect("We are not live yet").to.be.equals(err.msg);
-  });
+  //     });
+  //   }
+  //   catch(error) {
+  //     err = error;
+  //   }
+  //   console.log(err);
+  //   expect("We are not live yet").to.be.equals(err.msg);
+  // });
 
 
-  it(" Should  allow transfer if not go live yet for authority", async() => {
-    const connection = anchor.getProvider().connection;
-    const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
-    try{
-      await program.rpc.addUserForMintingNft({
-        accounts : {
-          routerAccount : routerAccount.publicKey,
-          authority : provider.wallet.publicKey,
-          payer : signer2Wallet.publicKey,
-          wallet : provider.wallet.publicKey,
-          rent : anchor.web3.SYSVAR_RENT_PUBKEY,
-          clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
-          systemProgram : SystemProgram.programId
-        },
-        signers : [signer2Wallet]
+  // it(" Should  allow transfer if not go live yet for authority", async() => {
+  //   const connection = anchor.getProvider().connection;
+  //   const beforeReceiverBalance = await connection.getBalance(signer1Wallet.publicKey);
+  //   try{
+  //     await program.rpc.addUserForMintingNft({
+  //       accounts : {
+  //         routerAccount : getRouterAccount().publicKey,
+  //         authority : provider.wallet.publicKey,
+  //         payer : signer1Wallet.publicKey,
+  //         wallet : provider.wallet.publicKey,
+  //         rent : anchor.web3.SYSVAR_RENT_PUBKEY,
+  //         clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
+  //         systemProgram : SystemProgram.programId
+  //       },
+  //       signers : [signer1Wallet]
   
-      });
-      const  afterReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
-      expect(beforeReceiverBalance).to.be.greaterThan(afterReceiverBalance);
-    }catch(err){
-      console.log(err);
-      console.log( "Authority : This error occurs because we are not connected to localnet/dev/test/prod");
+  //     });
+  //     const  afterReceiverBalance = await connection.getBalance(signer1Wallet.publicKey);
+  //     expect(beforeReceiverBalance).to.be.greaterThan(afterReceiverBalance);
+  //   }catch(err){
+  //     console.log(err);
+  //     console.log( "Authority : This error occurs because we are not connected to localnet/dev/test/prod");
 
-    }
+  //   }
+
+  //   //assert.isOk();
     
-  });
+  // });
 
   it("Should add transfer sols to the router account", async() => {
     try {
       const connection = anchor.getProvider().connection;
-      const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
+      const beforeReceiverBalance = await connection.getBalance(signer1Wallet.publicKey);
   
-      const beforePayerBalance = await connection.getBalance(signer1Wallet.publicKey);
+      const beforePayerBalance = await connection.getBalance(signer2Wallet.publicKey);
   
         await program.rpc.updateConfig({
           price : null,
@@ -275,7 +284,7 @@ describe('router', () => {
   
         },{
           accounts : {
-            routerAccount : routerAccount.publicKey,
+            routerAccount : getRouterAccount().publicKey,
             authority : provider.wallet.publicKey,
             wallet : provider.wallet.publicKey
           }
@@ -285,7 +294,7 @@ describe('router', () => {
         
         await program.rpc.addUserForMintingNft({
           accounts : {
-            routerAccount : routerAccount.publicKey,
+            routerAccount : getRouterAccount().publicKey,
             authority : provider.wallet.publicKey,
             payer : signer1Wallet.publicKey,
             wallet : provider.wallet.publicKey,
@@ -298,8 +307,8 @@ describe('router', () => {
         });
   
         //const routerData:RouterData = await getRouterData(program,routerAccount);
-        const afterReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
-        const afterPayerBalance = await connection.getBalance(signer1Wallet.publicKey);
+        const afterReceiverBalance = await connection.getBalance(signer1Wallet.publicKey);
+        const afterPayerBalance = await connection.getBalance(signer2Wallet.publicKey);
         
         expect(afterReceiverBalance).to.be.greaterThan(beforeReceiverBalance);
         expect(afterPayerBalance).to.be.lessThan(beforePayerBalance);
@@ -318,6 +327,8 @@ describe('router', () => {
 
 
 });
+
+
 
 
 

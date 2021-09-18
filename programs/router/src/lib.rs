@@ -4,6 +4,8 @@ use anchor_lang:: {
     solana_program:: {system_program, program:: invoke , system_instruction }
 };
 
+use user_vault::{self, UserVaultData};
+
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 pub mod utils;
@@ -59,7 +61,7 @@ pub mod router {
         Ok(())
     }
 
-    pub fn add_user_for_minting_nft(ctx: Context<MintNft>) -> ProgramResult {
+    pub fn add_user_for_minting_nft(ctx: Context<MintNft>, allow_multiple_minting : bool) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let clock = &mut ctx.accounts.clock;
         let authority = &mut ctx.accounts.authority;
@@ -106,11 +108,32 @@ pub mod router {
                 ctx.accounts.wallet.clone(),
                 ctx.accounts.system_program.clone(),
             ],
-        )?; 
-
+        )?;
+        
+        
+       /* let user_vault = &mut ctx.accounts.user_vault;
+        // if user_vault.authority != *authority.key  {
+        //     return Err(ErrorCode::IncorrectOwner.into());
+        // }  
+        
         // add the user into the program account
 
+        let user_pub_keys = &mut user_vault.users_pub_key;
+        let payer_key = *ctx.accounts.payer.key;
 
+        if allow_multiple_minting {
+            user_pub_keys.push(payer_key);
+        }
+        else {
+            if let Some(_) = user_pub_keys.into_iter().find(|user_key| **user_key == payer_key) {
+                return Err(ErrorCode::AlreadyMinted.into());
+            }
+        }*/
+
+       
+        
+
+        
         Ok(())
     }
 }
@@ -197,6 +220,9 @@ pub struct MintNft<'info> {
     clock: Sysvar<'info, Clock>,
     #[account(address = system_program::ID)]
     system_program: AccountInfo<'info>,
+    //#[account(mut)]
+   // user_vault: Account<'info, UserVaultData>
+
 }
 
 pub const CONFIG_ARRAY_LENGTH: usize = 8 + 32 + 8 + 8 + 8 + 40 * 30;
@@ -215,5 +241,7 @@ pub enum ErrorCode {
     RouterNotLiveYet,
     #[msg("Sale is over")]
     SaleIsOver,
+    #[msg("User already minted NFT")]
+    AlreadyMinted
 }
 

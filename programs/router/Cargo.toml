@@ -15,6 +15,7 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.15.0"
+anchor-lang = "0.16.1"
 spl-token = { version="3.1.1", features = [ "no-entrypoint" ] }
 spl-token-metadata = {version = "0.0.1", features= ["no-entrypoint"]}
+user_vault = {path="../../../user_vault/programs/user_vault", features=["cpi"]}
