@@ -226,7 +226,7 @@ describe('router', () => {
   it(" Should  allow transfer if not go live yet for authority", async() => {
     const connection = anchor.getProvider().connection;
     const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
-    try{
+    //try{
       await program.rpc.addUserForMintingNft({
         accounts : {
           routerAccount : routerAccount.publicKey,
@@ -242,15 +242,15 @@ describe('router', () => {
       });
       const  afterReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
       expect(beforeReceiverBalance).to.be.greaterThan(afterReceiverBalance);
-    }catch(err){
+   /* }catch(err){
       console.log(err);
       console.log( "Authority : This error occurs because we are not connected to localnet/dev/test/prod");
 
-    }
+    }*/
     
   });
 
-  it("Should add transfer sols to the router account", async() => {
+  it("Should allow transfer sols to the router account", async() => {
     try {
       const connection = anchor.getProvider().connection;
       const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
@@ -302,10 +302,6 @@ describe('router', () => {
     }
 
   });
-
-
-  
-
 
 });
 

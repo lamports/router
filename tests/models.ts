@@ -34,3 +34,12 @@ export interface Workspace {
 }
 
 //type usize = number;
+
+export interface UpdateUserVault {
+    userPubKey : PublicKey
+}
+
+export interface UserVaultData {
+    authority : PublicKey,
+    usersPubKey : Array<PublicKey>
+}

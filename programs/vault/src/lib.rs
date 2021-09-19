@@ -1,14 +1,69 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("5XcpJgxYgWbjn6mbAXm7njCnGfyzLU2Bgwo2JP7nf4wM");
 
 #[program]
 pub mod vault {
     use super::*;
-    pub fn initialize(ctx: Context<Initialize>) -> ProgramResult {
+    pub fn initialize_user_vault(ctx: Context<Initialize>) -> ProgramResult {
+        let user_vault_account = &mut ctx.accounts.user_vault_account;
+        let authority = &mut ctx.accounts.payer;
+        user_vault_account.authority = *authority.key;
+        Ok(())
+    }
+
+    pub fn add_user_into_vault(
+        ctx: Context<AddUserVault>,
+        data: Vec<UpdateUserVault>,
+    ) -> ProgramResult {
+        let user_vault_account = ctx.accounts.user_vault_account.clone();
+        let authority = ctx.accounts.authority.to_account_info();
+        if user_vault_account.authority.key() != *authority.key {
+            return Err(ErrorCode::NotAuthorized.into());
+        }
+        let user_vault_account = &mut ctx.accounts.user_vault_account;
+        let users_pub_key = &mut user_vault_account.users_pub_key;
+
+        for update_user_vault in data {
+            users_pub_key.push(update_user_vault.user_pub_key);
+        }
+
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct Initialize {}
+pub struct Initialize<'info> {
+    #[account(init, payer = payer, space= 8+310*32)]
+    user_vault_account: Account<'info, UserVaultAccount>,
+    //#[account(signer)]
+    payer: Signer<'info>,
+    system_program: Program<'info, System>,
+}
+
+#[account]
+#[derive(Default)]
+pub struct UserVaultAccount {
+    pub authority: Pubkey,
+    pub users_pub_key: Vec<Pubkey>,
+}
+
+//update
+#[derive(Accounts)]
+pub struct AddUserVault<'info> {
+    #[account(mut)]
+    user_vault_account: Account<'info, UserVaultAccount>,
+    //#[account(signer)]
+    authority: Signer<'info>,
+}
+
+#[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
+pub struct UpdateUserVault {
+    user_pub_key: Pubkey,
+}
+
+#[error]
+pub enum ErrorCode {
+    #[msg("Not authorized to update the User Vault")]
+    NotAuthorized,
+}
