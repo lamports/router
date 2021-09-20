@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 //use utils;
-use anchor_lang:: {
-    solana_program:: {system_program, program:: invoke , system_instruction }
-};
+use anchor_lang::solana_program::{program::invoke, system_instruction, system_program};
+use vault::program::Vault;
+use vault::{self, AddUserVault, UpdateUserVault, UserVaultAccount};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -22,7 +22,7 @@ pub mod router {
 
     pub fn update_config(
         ctx: Context<UpdateConfiguration>,
-        input_data : UpdateConfigData
+        input_data: UpdateConfigData,
     ) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let config = &mut router_account.config;
@@ -31,7 +31,7 @@ pub mod router {
             config.price = price as u64;
         }
 
-        if let Some(go_live_date) = input_data.go_live_date{
+        if let Some(go_live_date) = input_data.go_live_date {
             config.go_live_date = go_live_date;
         }
         if let Some(uuid) = input_data.uuid {
@@ -41,7 +41,7 @@ pub mod router {
             config.items_available = items_available as u64;
         }
 
-       // msg!("Router config data {}", &router_account.config.go_live_date);
+        // msg!("Router config data {}", &router_account.config.go_live_date);
         Ok(())
     }
 
@@ -91,8 +91,7 @@ pub mod router {
 
         if payer.lamports() < router_account.config.price {
             return Err(ErrorCode::NotEnoughSOL.into());
-        } 
-
+        }
 
         // transfer sols from user account to wallet of router
         invoke(
@@ -106,10 +105,20 @@ pub mod router {
                 ctx.accounts.wallet.clone(),
                 ctx.accounts.system_program.clone(),
             ],
-        )?; 
+        )?;
 
         // add the user into the program account
+        let vault_program = ctx.accounts.vault_program.to_account_info();
+        let vault_account = AddUserVault {
+            user_vault_account: ctx.accounts.vault_account.clone(),
+            authority: ctx.accounts.authority.clone(),
+        };
+        let vault_cpi_ctx = CpiContext::new(vault_program, vault_account);
+        let data: UpdateUserVault = UpdateUserVault {
+            user_pub_key: *ctx.accounts.payer.key,
+        };
 
+        vault::cpi::add_user_into_vault(vault_cpi_ctx, [data].to_vec())?;
 
         Ok(())
     }
@@ -136,14 +145,14 @@ pub struct RouterData {
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftAccountTracker {
-    current_program_index: u16, //tracks which program id to take in // 8
+    current_program_index: u16,       //tracks which program id to take in // 8
     sub_accounts: Vec<NftSubAccount>, //30 * nftsubaccount size // 30 * 72
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftSubAccount {
-    nft_sub_account: Pubkey,          //32
-    nft_sub_program_id: Pubkey,       //32
+    nft_sub_account: Pubkey,        //32
+    nft_sub_program_id: Pubkey,     //32
     current_sub_account_index: u16, // tracks which pubkey needs nft //8
 }
 
@@ -158,7 +167,7 @@ pub struct ConfigData {
 // update config data
 #[derive(Accounts)]
 pub struct UpdateConfiguration<'info> {
-    #[account(mut, has_one=authority)]
+    #[account(mut, has_one=authority, constraint= *authority.key == router_account.authority.key() )]
     router_account: ProgramAccount<'info, RouterData>,
     #[account(signer)]
     authority: AccountInfo<'info>,
@@ -169,9 +178,8 @@ pub struct UpdateConfigData {
     price: Option<u32>,           //8 // but this is stored as u64
     go_live_date: Option<i64>,    //8
     uuid: Option<String>,         //6
-    items_available: Option<u32>, //8 // but this is stored as u64 
+    items_available: Option<u32>, //8 // but this is stored as u64
 }
-
 
 #[derive(Accounts)]
 pub struct UpdateNftSubAccount<'info> {
@@ -187,8 +195,10 @@ pub struct UpdateNftSubAccount<'info> {
 pub struct MintNft<'info> {
     #[account(mut, has_one= authority)]
     router_account: ProgramAccount<'info, RouterData>,
-    #[account(signer)]
-    authority: AccountInfo<'info>,
+    #[account(mut)]
+    vault_account: Account<'info, UserVaultAccount>,
+    vault_program: Program<'info, Vault>,
+    authority: Signer<'info>,
     #[account(mut, signer)]
     payer: AccountInfo<'info>,
     #[account(mut)]
@@ -199,7 +209,7 @@ pub struct MintNft<'info> {
     system_program: AccountInfo<'info>,
 }
 
-pub const CONFIG_ARRAY_LENGTH: usize = 8 + 32 + 8 + 8 + 8 + 40 * 30;
+//pub const CONFIG_ARRAY_LENGTH: usize = 8 + 32 + 8 + 8 + 8 + 40 * 30;
 
 #[error]
 pub enum ErrorCode {
@@ -216,4 +226,3 @@ pub enum ErrorCode {
     #[msg("Sale is over")]
     SaleIsOver,
 }
-

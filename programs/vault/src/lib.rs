@@ -25,7 +25,6 @@ pub mod vault {
         for update_user_vault in data {
             users_pub_key.push(update_user_vault.user_pub_key);
         }
-
         Ok(())
     }
 }
@@ -47,14 +46,15 @@ pub struct UserVaultAccount {
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct UpdateUserVault {
-    user_pub_key: Pubkey,
+    pub user_pub_key: Pubkey,
 }
 
 #[derive(Accounts)]
 pub struct AddUserVault<'info> {
     #[account(mut, has_one=authority, constraint = user_vault_account.authority == *authority.key && authority.key != &Pubkey::new_from_array([0u8; 32]))]
-    user_vault_account: Account<'info, UserVaultAccount>,
-    authority: Signer<'info>,
+    //#[account(mut)]
+    pub user_vault_account: Account<'info, UserVaultAccount>,
+    pub authority: Signer<'info>,
 }
 
 #[error]
