@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-
 declare_id!("5XcpJgxYgWbjn6mbAXm7njCnGfyzLU2Bgwo2JP7nf4wM");
 
 #[program]
@@ -11,7 +10,6 @@ pub mod vault {
         user_vault_account.authority = *authority.key;
         Ok(())
     }
-
     pub fn add_user_into_vault(
         ctx: Context<AddUserVault>,
         data: Vec<UpdateUserVault>,
@@ -36,7 +34,6 @@ pub mod vault {
 pub struct Initialize<'info> {
     #[account(init, payer = payer, space= 8+310*32)]
     user_vault_account: Account<'info, UserVaultAccount>,
-    //#[account(signer)]
     payer: Signer<'info>,
     system_program: Program<'info, System>,
 }
@@ -48,18 +45,16 @@ pub struct UserVaultAccount {
     pub users_pub_key: Vec<Pubkey>,
 }
 
-//update
-#[derive(Accounts)]
-pub struct AddUserVault<'info> {
-    #[account(mut)]
-    user_vault_account: Account<'info, UserVaultAccount>,
-    //#[account(signer)]
-    authority: Signer<'info>,
-}
-
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct UpdateUserVault {
     user_pub_key: Pubkey,
+}
+
+#[derive(Accounts)]
+pub struct AddUserVault<'info> {
+    #[account(mut, has_one=authority, constraint = user_vault_account.authority == *authority.key && authority.key != &Pubkey::new_from_array([0u8; 32]))]
+    user_vault_account: Account<'info, UserVaultAccount>,
+    authority: Signer<'info>,
 }
 
 #[error]

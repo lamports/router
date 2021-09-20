@@ -248,69 +248,144 @@ describe("Vault", () => {
                    userVaultAccount : userVaultAccount.publicKey,
                    authority : provider.wallet.publicKey,
                  }
-               });      
+               }); 
+               
+               
+               const result : UserVaultData = await getUserVaultData(vaultProgram,userVaultAccount);
+               console.log(result.usersPubKey.length);
+
+               assert.ok(result.usersPubKey.length == 240);
            }
            catch(err) {
              console.log(err);
-           }     
-         });
-         it("should add next 30 pub keys into the vault ", async () => {
-          try {
-             let userPubKeys : Array<UpdateUserVault> = [];
-               for(let i = 0 ; i< 30; i++){
-                 const randomKeygen = anchor.web3.Keypair.generate();
-                 const userVault = {
-                   userPubKey : randomKeygen.publicKey
-                 }
+           }  
            
-                 userPubKeys.push(userVault);
-               }
+           
+         });
+        //  it("should add next 30 pub keys into the vault ", async () => {
+        //   try {
+        //      let userPubKeys : Array<UpdateUserVault> = [];
+        //        for(let i = 0 ; i< 30; i++){
+        //          const randomKeygen = anchor.web3.Keypair.generate();
+        //          const userVault = {
+        //            userPubKey : randomKeygen.publicKey
+        //          }
+           
+        //          userPubKeys.push(userVault);
+        //        }
                
       
-               await vaultProgram.rpc.addUserIntoVault(userPubKeys,
-               {
-                 accounts : {
-                   userVaultAccount : userVaultAccount.publicKey,
-                   authority : provider.wallet.publicKey,
-                 }
-               });      
-           }
-           catch(err) {
-             console.log(err);
-           }     
-         });
+        //        await vaultProgram.rpc.addUserIntoVault(userPubKeys,
+        //        {
+        //          accounts : {
+        //            userVaultAccount : userVaultAccount.publicKey,
+        //            authority : provider.wallet.publicKey,
+        //          }
+        //        });      
+        //    }
+        //    catch(err) {
+        //      console.log(err);
+        //    }     
+        //  });
       
       
       
          
-         it("should add next 30 pub keys into the vault ", async () => {
-          try {
-             let userPubKeys : Array<UpdateUserVault> = [];
-               for(let i = 0 ; i< 30; i++){
-                 const randomKeygen = anchor.web3.Keypair.generate();
+        //  it("should add next 30 pub keys into the vault ", async () => {
+        //   try {
+        //      let userPubKeys : Array<UpdateUserVault> = [];
+        //        for(let i = 0 ; i< 30; i++){
+        //          const randomKeygen = anchor.web3.Keypair.generate();
+        //          const userVault = {
+        //            userPubKey : randomKeygen.publicKey
+        //          }
+           
+        //          userPubKeys.push(userVault);
+        //        }
+               
+        //        await vaultProgram.rpc.addUserIntoVault(userPubKeys,
+        //        {
+        //          accounts : {
+        //            userVaultAccount : userVaultAccount.publicKey,
+        //            authority : provider.wallet.publicKey,
+        //          }
+        //        });
+        //        const userVaultData: UserVaultData = await getUserVaultData(vaultProgram, userVaultAccount);
+        //        console.log(userVaultData.usersPubKey.length);
+             
+        //    }
+        //    catch(err) {
+        //      console.log(err);
+        //    }     
+        //  });
+    });
+
+
+    describe("adding more....", async () => {
+        it("add next 30 pub keys into the vault ", async () => {
+            try {
+                let userPubKeys : Array<UpdateUserVault> = [];
+                for(let i = 0 ; i< 15; i++){
+                    const randomKeygen = anchor.web3.Keypair.generate();
+                    const userVault = {
+                    userPubKey : randomKeygen.publicKey
+                    }
+            
+                    userPubKeys.push(userVault);
+                }
+                
+                await vaultProgram.rpc.addUserIntoVault(userPubKeys,
+                {
+                    accounts : {
+                    userVaultAccount : userVaultAccount.publicKey,
+                    authority : provider.wallet.publicKey,
+                    }
+                });
+                const userVaultData: UserVaultData = await getUserVaultData(vaultProgram, userVaultAccount);
+                console.log(userVaultData.usersPubKey.length);
+                
+            }
+            catch(err) {
+                console.log(err);
+            }     
+            });
+    
+    });
+
+    describe("Invalid authority", async () => {
+
+        it("should not allow adding invalid authority to vault", async () => {
+            const randomKeygen = anchor.web3.Keypair.generate();
                  const userVault = {
                    userPubKey : randomKeygen.publicKey
                  }
-           
-                 userPubKeys.push(userVault);
-               }
-               
-               await vaultProgram.rpc.addUserIntoVault(userPubKeys,
-               {
-                 accounts : {
-                   userVaultAccount : userVaultAccount.publicKey,
-                   authority : provider.wallet.publicKey,
-                 }
-               });
-               const userVaultData: UserVaultData = await getUserVaultData(vaultProgram, userVaultAccount);
-               console.log(userVaultData.usersPubKey.length);
-             
-           }
-           catch(err) {
-             console.log(err);
-           }     
-         });
+            try {
+      
+                await vaultProgram.rpc.addUserIntoVault([userVault],
+                {
+                accounts : {
+                    userVaultAccount : userVaultAccount.publicKey,
+                    authority : signer1Wallet.publicKey,
+                }
+                });
+            }
+            catch(err) {
+            console.log(err);
+            }
+            
+            const result : UserVaultData = await getUserVaultData(vaultProgram,userVaultAccount);
+            console.log(result.usersPubKey.length);
+
+            assert.ok(result.usersPubKey.length != 256);
+
         });
+    });
+
+
+    
+
+
+    
       
 });
 
