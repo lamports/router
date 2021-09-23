@@ -9,7 +9,7 @@ import {
 import {assert, expect} from "chai";
 
 import { Workspace} from "./models";
-import { getCustomWorkspace, getSigner1Wallet, getSigner2Wallet} from "./helper";
+import { getCustomWorkspace, getSigner1Wallet, getSigner2Wallet, getUserVaultData} from "./helper";
 import {UpdateUserVault, UserVaultData} from "./models";
 
 
@@ -17,13 +17,9 @@ describe("Vault", () => {
 
     const signer1Wallet = getSigner1Wallet();
     const signer2Wallet = getSigner2Wallet();
-    const  workspace:Workspace = getCustomWorkspace(signer2Wallet, process.env.VAULT_IDL_PATH, process.env.VAULT_PROGRAM_ID);
-    const  routerWork = getCustomWorkspace(signer2Wallet, process.env.ROUTER_IDL_PATH, process.env.ROUTER_PROGRAM_ID);
+    const workspace:Workspace = getCustomWorkspace(signer2Wallet, process.env.VAULT_IDL_PATH, process.env.VAULT_PROGRAM_ID);
 
-   const provider = workspace.provider;
-
-    
-
+    const provider = workspace.provider;
     const vaultProgram = workspace.program;
 
     //const vaultProgram = anchor.workspace.Vault;
@@ -354,7 +350,7 @@ describe("Vault", () => {
 
     describe("Invalid authority", async () => {
 
-        it("should not allow adding invalid authority to vault", async () => {
+        it("should not allow adding invalid authority to add to vault", async () => {
             const randomKeygen = anchor.web3.Keypair.generate();
                  const userVault = {
                    userPubKey : randomKeygen.publicKey
@@ -381,14 +377,41 @@ describe("Vault", () => {
         });
     });
 
+    it("should close the account and transfer the sols", async () => {
+        //try{
 
-    
+
+        const localAccount = anchor.web3.Keypair.generate();
+        const tx = await vaultProgram.rpc.initializeUserVault({
+            accounts : {
+                userVaultAccount : localAccount.publicKey,
+                payer : provider.wallet.publicKey,
+                systemProgram : SystemProgram.programId
+            },
+            //instructions : [await vaultProgram.account.userVaultAccount.createInstruction(userVaultAccount)],
+            signers : [localAccount]
+        });
+        console.log("Your transaction signature", tx); 
 
 
-    
+         await vaultProgram.rpc.closeAccount({
+           accounts :{
+            userVaultAccount : localAccount.publicKey,
+             authority : provider.wallet.publicKey,
+           },
+          // signers :[signer2Wallet]
+         });
+     
+         const result : UserVaultData = await getUserVaultData(vaultProgram, userVaultAccount);
+     
+         console.log(result);
+       // } 
+       // catch(err){
+          //console.log(err);
+        //}
+     
+     });
+      
       
 });
 
-export const getUserVaultData = async (program : any, account : Keypair ) : Promise<UserVaultData> => {
-    return program.account.userVaultAccount.fetch(account.publicKey);
-  }

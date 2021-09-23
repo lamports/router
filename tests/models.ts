@@ -43,3 +43,4 @@ export interface UserVaultData {
     authority : PublicKey,
     usersPubKey : Array<PublicKey>
 }
+

@@ -811,6 +811,7 @@ dependencies = [
  "anchor-lang",
  "spl-token",
  "spl-token-metadata",
+ "vault",
 ]
 
 [[package]]
