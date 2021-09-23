@@ -1,8 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{
-    program::{invoke, invoke_signed},
-    system_instruction, system_program,
-};
 
 declare_id!("5XcpJgxYgWbjn6mbAXm7njCnGfyzLU2Bgwo2JP7nf4wM");
 
