@@ -179,7 +179,7 @@ pub mod router {
         );
         let router_data = &ctx.accounts.router_account.data;
         let sub_account = &router_data.sub_accounts[router_data.current_account_index as usize];
-
+        // remove only if the current is index is not processing the current sub account
         if sub_account.nft_sub_account == *ctx.accounts.vault_account.to_account_info().key {
             return Err(ErrorCode::CannotCloseAccount.into());
         }

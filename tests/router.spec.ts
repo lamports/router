@@ -199,7 +199,7 @@ describe('router', () => {
   });
 
 
-  describe("Close Sub account", async () => {
+  describe("Close Sub Account", async () => {
 
     const  workspace:Workspace = getCustomWorkspace(signer2Wallet, process.env.VAULT_IDL_PATH, process.env.VAULT_PROGRAM_ID);
     const vaultProgram = workspace.program;
@@ -218,7 +218,25 @@ describe('router', () => {
             signers : [vaultAccount]
         });
         //console.log("Your transaction signature", tx);   
-        console.log("Generated new vault account with transaction id :: ", tx);   
+        console.log("Generated new vault account with transaction id :: ", tx); 
+        
+        
+        const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
+        const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
+        await program.rpc.addNftSubAccount(
+        [{
+            nftSubAccount : vaultAccount.publicKey,
+            nftSubProgramId : vaultProgram.programId,
+            currentSubAccountIndex : 0,
+        }],
+        {
+            accounts : {
+            routerAccount : routerAccount.publicKey,
+            authority : provider.wallet.publicKey,
+            wallet : provider.wallet.publicKey
+            }
+        });
+
       }
       catch(err){
           console.log(err);
@@ -226,8 +244,33 @@ describe('router', () => {
     });
 
 
-    it("should close the vault account", async () => {
+    it("should close the VAULT account", async () => {
+      let isError = false;
+      try{
+        const connection = anchor.getProvider().connection;
+        const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
+          await program.rpc.closeSubAccount({
+            accounts : {
+              routerAccount : routerAccount.publicKey,
+              vaultAccount : vaultAccount.publicKey,
+              vaultProgram : vaultProgram.programId,
+              authority : provider.wallet.publicKey
+            },
+            signers :[signer2Wallet]
+          });
+          const afterReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
+  
+  
+  
+          expect(afterReceiverBalance).to.be.greaterThan(beforeReceiverBalance);
+  
+      }
+      catch(err){
+        isError = true;
+        console.log(err);
+      }
 
+      assert.isFalse(isError, "Could not close the sub account");
 
     });
 
