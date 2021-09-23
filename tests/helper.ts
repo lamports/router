@@ -1,6 +1,6 @@
 require("dotenv").config();
 import {Keypair} from "@solana/web3.js";
-import { RouterData, Workspace } from "./models";
+import { RouterData, Workspace, UserVaultData } from "./models";
 import * as anchor from '@project-serum/anchor';
 
 export const getRouterData = async (program : any, account : Keypair ) : Promise<RouterData> => {
@@ -60,3 +60,7 @@ export const getCustomWorkspace = (wallet: Keypair, idlPath : string, programIdS
         program : program
     }
 } 
+
+export const getUserVaultData = async (program : any, account : Keypair ) : Promise<UserVaultData> => {
+    return program.account.userVaultAccount.fetch(account.publicKey);
+  }

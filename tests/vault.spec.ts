@@ -9,7 +9,7 @@ import {
 import {assert, expect} from "chai";
 
 import { Workspace} from "./models";
-import { getCustomWorkspace, getSigner1Wallet, getSigner2Wallet} from "./helper";
+import { getCustomWorkspace, getSigner1Wallet, getSigner2Wallet, getUserVaultData} from "./helper";
 import {UpdateUserVault, UserVaultData} from "./models";
 
 
@@ -415,6 +415,3 @@ describe("Vault", () => {
       
 });
 
-export const getUserVaultData = async (program : any, account : Keypair ) : Promise<UserVaultData> => {
-    return program.account.userVaultAccount.fetch(account.publicKey);
-  }

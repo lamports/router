@@ -95,8 +95,11 @@ pub mod router {
         }
 
         let router_data: &NftAccountTracker = &router_account.clone().data;
-        let sub_account: &NftSubAccount =
-            &router_data.sub_accounts[router_data.current_account_index as usize - 1];
+        let sub_account: &NftSubAccount = &router_data.sub_accounts[router_data
+            .current_account_index
+            .checked_sub(1)
+            .ok_or(ErrorCode::NumericalOverflowError)?
+            as usize];
 
         // check if the account could be added into the vault!!
         if sub_account.current_sub_account_index >= 240 {
@@ -133,25 +136,24 @@ pub mod router {
         };
 
         vault::cpi::add_user_into_vault(vault_cpi_ctx, [data].to_vec())?;
-
-        let router_account_data = &mut ctx.accounts.router_account.data;
-        let sub_account =
-            &mut router_account_data.sub_accounts[router_data.current_account_index as usize - 1];
+        let router_config = &mut router_account.config;
+        router_config.items_available = router_config
+            .items_available
+            .checked_sub(1)
+            .ok_or(ErrorCode::NumericalOverflowError)?;
+        let router_account_data = &mut router_account.data;
+        let sub_account = &mut router_account_data.sub_accounts[router_data
+            .current_account_index
+            .checked_sub(1)
+            .ok_or(ErrorCode::NumericalOverflowError)?
+            as usize];
 
         sub_account.current_sub_account_index = sub_account
             .current_sub_account_index
             .checked_add(1)
             .ok_or(ErrorCode::NumericalOverflowError)?;
 
-        let router_account = &mut ctx.accounts.router_account;
-
-        router_account
-            .config
-            .items_available
-            .checked_sub(1)
-            .ok_or(ErrorCode::NumericalOverflowError)?;
-
-        emit!(MintToken {
+        emit!(MintTokenEvent {
             current_account_index: router_data.current_account_index,
             payer_key: *ctx.accounts.payer.to_account_info().key,
         });
@@ -306,7 +308,7 @@ pub struct UpdateCurrentAccountIndex<'info> {
 }
 
 #[event]
-pub struct MintToken {
+pub struct MintTokenEvent {
     current_account_index: u16,
     payer_key: Pubkey,
 }

@@ -9,8 +9,8 @@ import {
   TransactionInstruction} from "@solana/web3.js";
 import {assert, expect} from "chai";
 import BN from 'bn.js';
-import {NftSubAccount, RouterData, Workspace} from "./models";
-import {getRouterData, getDefaultAnchorWorkspace, getCustomWorkspace, getSigner1Wallet, getSigner2Wallet} from "./helper";
+import {NftSubAccount, RouterData, Workspace,UserVaultData} from "./models";
+import {getRouterData, getDefaultAnchorWorkspace, getCustomWorkspace, getSigner1Wallet, getSigner2Wallet,getUserVaultData} from "./helper";
 
 
 
@@ -212,32 +212,62 @@ describe("MINTING NFT", async() => {
      
         const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
         const beforePayerBalance = await connection.getBalance(signer1Wallet.publicKey);
-        await routerProgram.rpc.addUserForMintingNft({
-          accounts : {
-            routerAccount : routerAccount.publicKey,
-            authority : routerProvider.wallet.publicKey,
-            vaultAccount : vaultAccount.publicKey,
-            vaultProgram : vaultProgram.programId,
-            payer : signer1Wallet.publicKey,
-            wallet : routerProvider.wallet.publicKey,
-            rent : anchor.web3.SYSVAR_RENT_PUBKEY,
-            clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
-            systemProgram : SystemProgram.programId
-          },
-          signers : [signer1Wallet]
-  
+        const beforeRouterData:RouterData = await getRouterData(routerProgram,routerAccount);
+
+
+        // check if the MintTokenEvent is fired
+        let listener = null;
+        let [event, slot] = await new Promise((resolve, _)=> {
+            listener = routerProgram.addEventListener("MintTokenEvent", (event, slot) => {
+                resolve([event, slot]);
+            });
+        
+            routerProgram.rpc.addUserForMintingNft({
+                accounts : {
+                  routerAccount : routerAccount.publicKey,
+                  authority : routerProvider.wallet.publicKey,
+                  vaultAccount : vaultAccount.publicKey,
+                  vaultProgram : vaultProgram.programId,
+                  payer : signer1Wallet.publicKey,
+                  wallet : routerProvider.wallet.publicKey,
+                  rent : anchor.web3.SYSVAR_RENT_PUBKEY,
+                  clock : anchor.web3.SYSVAR_CLOCK_PUBKEY,
+                  systemProgram : SystemProgram.programId
+                },
+                signers : [signer1Wallet]
+        
+              });
         });
+
+        await routerProgram.removeEventListener(listener);
+
+        
   
-        //console.log()
         const routerData:RouterData = await getRouterData(routerProgram,routerAccount);
        // console.log(routerData);
         const afterReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
         const afterPayerBalance = await connection.getBalance(signer1Wallet.publicKey);
-        
+        // check if balances have been transferred
         expect(afterReceiverBalance).to.be.greaterThan(beforeReceiverBalance);
         expect(afterPayerBalance).to.be.lessThan(beforePayerBalance);
-    
-          //console.log(routerData);
+        // check if the items have been reduced
+        expect(routerData.config.itemsAvailable).to.be.lessThan(1000);
+        assert.ok(routerData.config.itemsAvailable === 999);
+        assert.ok(routerData.data.subAccounts[0].currentSubAccountIndex === beforeRouterData.data.subAccounts[0].currentSubAccountIndex + 1);
+
+
+        const vaultData : UserVaultData = await getUserVaultData(vaultProgram,vaultAccount);
+        // check if the vault has been updated
+        assert.ok(vaultData.usersPubKey.length == 1);
+        assert.ok(vaultData.usersPubKey[0].equals(signer1Wallet.publicKey));
+
+       
+        // MInt token Event test 
+        assert.ok(slot > 0);
+        assert.ok(event.currentAccountIndex === 1);
+        assert.ok(event.payerKey.equals(signer1Wallet.publicKey));
+
+
       }
       catch(err){
         console.log(err);
