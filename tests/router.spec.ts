@@ -150,7 +150,7 @@ describe('router', () => {
         let nftSubAccount : NftSubAccount = {
           nftSubAccount : anchor.web3.Keypair.generate().publicKey,
           nftSubProgramId :  anchor.web3.Keypair.generate().publicKey,
-          currentSubAccountIndex : 300 // because each account can store 300 pubkeys
+          currentSubAccountIndex : 240 // because each account can store 240 pubkeys
         }
 
         nftSubAccounts.push(nftSubAccount);
@@ -199,7 +199,7 @@ describe('router', () => {
   });
 
 
-  describe("MINTING NFT", async() => {
+ /* describe("MINTING NFT", async() => {
 
     const  workspace:Workspace = getCustomWorkspace(signer2Wallet, process.env.VAULT_IDL_PATH, process.env.VAULT_PROGRAM_ID);
     const vaultProgram = workspace.program;
@@ -255,7 +255,7 @@ describe('router', () => {
     });
   
   
-    it(" Should  allow transfer if not go live yet for authority", async() => {
+    it(" Should  allow minting if not go live yet for authority", async() => {
       const connection = anchor.getProvider().connection;
       const beforeReceiverBalance = await connection.getBalance(signer2Wallet.publicKey);
       //try{
@@ -308,8 +308,7 @@ describe('router', () => {
           }
   
         });
-
-          
+     
           //const data:RouterData = await getRouterData(program, routerAccount);
          // console.log(data.config.goLiveDate.toString())
           
@@ -344,9 +343,43 @@ describe('router', () => {
       }
   
     });
+  }); */
+
+  describe("Close Sub account", async () => {
+
+    const  workspace:Workspace = getCustomWorkspace(signer2Wallet, process.env.VAULT_IDL_PATH, process.env.VAULT_PROGRAM_ID);
+    const vaultProgram = workspace.program;
+    let vaultAccount:Keypair = null;
+
+    beforeEach(async () => {
+      try{
+        vaultAccount = anchor.web3.Keypair.generate();
+        const tx = await vaultProgram.rpc.initializeUserVault({
+            accounts : {
+                userVaultAccount : vaultAccount.publicKey,
+                payer : provider.wallet.publicKey,
+                systemProgram : SystemProgram.programId
+            },
+            //instructions : [await vaultProgram.account.userVaultAccount.createInstruction(userVaultAccount)],
+            signers : [vaultAccount]
+        });
+        //console.log("Your transaction signature", tx);   
+        console.log("Generated new vault account with transaction id :: ", tx);   
+      }
+      catch(err){
+          console.log(err);
+      }
+    });
+
+
+    it("should close the vault account", async () => {
+
+
+    });
+
+
   });
 
-  
 
 });
 

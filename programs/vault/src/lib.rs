@@ -1,4 +1,9 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::{
+    program::{invoke, invoke_signed},
+    system_instruction, system_program,
+};
+
 declare_id!("5XcpJgxYgWbjn6mbAXm7njCnGfyzLU2Bgwo2JP7nf4wM");
 
 #[program]
@@ -25,6 +30,16 @@ pub mod vault {
         for update_user_vault in data {
             users_pub_key.push(update_user_vault.user_pub_key);
         }
+        Ok(())
+    }
+
+    pub fn close_account(ctx: Context<CloseAccount>) -> ProgramResult {
+        require!(
+            *ctx.accounts.authority.to_account_info().key
+                == ctx.accounts.user_vault_account.authority,
+            ErrorCode::NotAuthorized
+        );
+
         Ok(())
     }
 }
@@ -55,6 +70,13 @@ pub struct AddUserVault<'info> {
     //#[account(mut)]
     pub user_vault_account: Account<'info, UserVaultAccount>,
     pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CloseAccount<'info> {
+    #[account(mut,close=authority ,has_one=authority, constraint = user_vault_account.authority == *authority.key && authority.key != &Pubkey::new_from_array([0u8; 32]))]
+    pub user_vault_account: Account<'info, UserVaultAccount>,
+    pub authority: AccountInfo<'info>,
 }
 
 #[error]
