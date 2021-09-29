@@ -27,7 +27,6 @@ export const getSigner1Wallet = () => {
         JSON.parse(require("fs").readFileSync(process.env.SIGNER_1_WALLET, "utf8"))
         )
     );
-
 }
 
 export const getSigner2Wallet = () => {

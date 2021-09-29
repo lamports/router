@@ -1,46 +1,43 @@
-import {PublicKey } from "@solana/web3.js";
-import * as anchor from '@project-serum/anchor';
+import { PublicKey } from "@solana/web3.js";
+import * as anchor from "@project-serum/anchor";
 
 export interface RouterData {
-    data : NftAccountTracker;
-    authority : PublicKey;
-    config : ConfigData;
-    wallet : PublicKey;
+  data: NftAccountTracker;
+  authority: PublicKey;
+  config: ConfigData;
+  wallet: PublicKey;
 }
 
-
 export interface NftAccountTracker {
-    currentProgramIndex : number;
-    subAccounts : Array<NftSubAccount>;
-
+  currentProgramIndex: number;
+  subAccounts: Array<NftSubAccount>;
 }
 
 export interface NftSubAccount {
-    nftSubAccount : PublicKey;
-    nftSubProgramId : PublicKey;
-    currentSubAccountIndex: number;
+  nftSubAccount: PublicKey;
+  nftSubProgramId: PublicKey;
+  currentSubAccountIndex: number;
 }
 
 export interface ConfigData {
-    price : number;
-    goLiveDate : any;
-    uuid: string;
-    itemsAvailable : number
+  price: number;
+  goLiveDate: any;
+  uuid: string;
+  itemsAvailable: number;
 }
 
 export interface Workspace {
-    provider : anchor.Provider;
-    program : anchor.Program;
+  provider: anchor.Provider;
+  program: anchor.Program;
 }
 
 //type usize = number;
 
 export interface UpdateUserVault {
-    userPubKey : PublicKey
+  userPubKey: PublicKey;
 }
 
 export interface UserVaultData {
-    authority : PublicKey,
-    usersPubKey : Array<PublicKey>
+  authority: PublicKey;
+  usersPubKey: Array<PublicKey>;
 }
-
