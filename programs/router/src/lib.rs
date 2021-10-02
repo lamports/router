@@ -17,6 +17,7 @@ pub mod router {
         let authority = &mut ctx.accounts.payer;
         router_account.authority = *authority.key;
         router_account.wallet = *ctx.accounts.wallet.key;
+        
         //router_account.to_account_info().da
         Ok(())
     }
@@ -51,7 +52,7 @@ pub mod router {
         input_data: Vec<NftSubAccount>,
     ) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
-        router_account.data.current_account_index = input_data.len() as u16;
+        //router_account.data.current_account_index = input_data.len() as u16;
         let nft_vector = &mut router_account.data.sub_accounts;
         for nft_account in input_data {
             nft_vector.push(nft_account);
