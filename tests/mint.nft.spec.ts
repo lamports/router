@@ -117,7 +117,7 @@ describe("MINTING NFT", async () => {
   it("Should not allow transfer if not go live yet", async () => {
     let err = null;
     try {
-      await routerProgram.rpc.addUserForMintingNft({
+      await routerProgram.rpc.addUserForMintingNft(2, {
         accounts: {
           routerAccount: routerAccount.publicKey,
           authority: routerProvider.wallet.publicKey,
@@ -164,7 +164,7 @@ describe("MINTING NFT", async () => {
 
       //debugger;
 
-      await routerProgram.rpc.addUserForMintingNft({
+      await routerProgram.rpc.addUserForMintingNft(2, {
         accounts: {
           routerAccount: routerAccount.publicKey,
           authority: routerProvider.wallet.publicKey,
@@ -236,7 +236,7 @@ describe("MINTING NFT", async () => {
           }
         );
 
-        routerProgram.rpc.addUserForMintingNft({
+        routerProgram.rpc.addUserForMintingNft(2, {
           accounts: {
             routerAccount: routerAccount.publicKey,
             authority: routerProvider.wallet.publicKey,
@@ -270,19 +270,25 @@ describe("MINTING NFT", async () => {
       expect(afterPayerBalance).to.be.lessThan(beforePayerBalance);
       // check if the items have been reduced
       expect(routerData.config.itemsAvailable).to.be.lessThan(1000);
-      assert.ok(routerData.config.itemsAvailable === 999);
+      assert.ok(routerData.config.itemsAvailable === 998);
       assert.ok(
         routerData.data.subAccounts[0].currentSubAccountIndex ===
-          beforeRouterData.data.subAccounts[0].currentSubAccountIndex + 1
+          beforeRouterData.data.subAccounts[0].currentSubAccountIndex + 2
       );
 
       const vaultData: UserVaultData = await getUserVaultData(
         vaultProgram,
         vaultAccount
       );
+
+      console.log(
+        "Users PubKeys added length --> ",
+        vaultData.usersPubKey.length
+      );
       // check if the vault has been updated
-      assert.ok(vaultData.usersPubKey.length == 1);
+      assert.ok(vaultData.usersPubKey.length == 2);
       assert.ok(vaultData.usersPubKey[0].equals(signer1Wallet.publicKey));
+      assert.ok(vaultData.usersPubKey[1].equals(signer1Wallet.publicKey));
 
       // MInt token Event test
       assert.ok(slot > 0);

@@ -65,11 +65,14 @@ pub mod router {
         Ok(())
     }
 
-    pub fn add_user_for_minting_nft(ctx: Context<MintNft>) -> ProgramResult {
+    pub fn add_user_for_minting_nft(ctx: Context<MintNft>, mint_number : u32) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let clock = &mut ctx.accounts.clock;
         let authority = &mut ctx.accounts.authority;
         let payer = &mut ctx.accounts.payer;
+
+
+        require!(mint_number <  u32::max_value(), ErrorCode::MintMaxError);
 
         if router_account.config.go_live_date > clock.unix_timestamp {
             // only authority could mint before go live
@@ -78,7 +81,7 @@ pub mod router {
             }
         }
 
-        if router_account.data.sub_accounts.len() >= 30
+        if router_account.data.sub_accounts.len() >= 46
             && router_account
                 .data
                 .sub_accounts
@@ -86,16 +89,23 @@ pub mod router {
                 .as_ref()
                 .unwrap()
                 .current_sub_account_index
-                >= 300
+                > 240 
         {
             return Err(ErrorCode::SaleIsOver.into());
         }
 
-        if router_account.config.items_available <= 0 {
+        if router_account.config.items_available  < mint_number  {
+            emit!(ItemsAvailableEvent{
+                items_available : router_account.config.items_available
+            });
+            return Err(ErrorCode::NotEnoughItemsError.into());
+        }
+
+        if router_account.config.items_available <= 0  {
             return Err(ErrorCode::SaleIsOver.into());
         }
 
-        if payer.lamports() < router_account.config.price {
+        if payer.lamports() < router_account.config.price * mint_number as u64 {
             return Err(ErrorCode::NotEnoughSOL.into());
         }
 
@@ -103,18 +113,20 @@ pub mod router {
 
         require!(router_data.sub_accounts.len() > 0, ErrorCode::NftSubAccountError);
 
-        let sub_account: &NftSubAccount = &router_data.sub_accounts[router_data
-            .current_account_index
-            as usize];
+        let sub_account: &NftSubAccount = &router_data.sub_accounts[router_data.current_account_index as usize];
 
         // check if the account could be added into the vault!!
-        if sub_account.current_sub_account_index >= 240 {
+        if sub_account.current_sub_account_index > 240 {
             return Err(ErrorCode::SubAccountIsFull.into());
         }
 
-        if router_account.config.items_available <= 0 {
-            return Err(ErrorCode::SaleIsOver.into());
+        if (sub_account.current_sub_account_index + mint_number as u16) > 240 {
+            emit!(SubAccountLimitEvent{
+                current_sub_account_index : sub_account.current_sub_account_index
+            });
+            return Err(ErrorCode::SubAccountLimitError.into());
         }
+
 
         // transfer sols from user account to wallet of router
         invoke(
@@ -132,20 +144,30 @@ pub mod router {
 
         // add the user into the program account
         let vault_program = ctx.accounts.vault_program.to_account_info();
+
         let vault_account = AddUserVault {
             user_vault_account: ctx.accounts.vault_account.clone(),
             authority: ctx.accounts.authority.clone(),
         };
-        let vault_cpi_ctx = CpiContext::new(vault_program, vault_account);
-        let data: UpdateUserVault = UpdateUserVault {
-            user_pub_key: *ctx.accounts.payer.key,
-        };
+        let vault_cpi_ctx = CpiContext::new(vault_program.clone(), vault_account);
 
-        vault::cpi::add_user_into_vault(vault_cpi_ctx, [data].to_vec())?;
+        let mut user_accounts : Vec<UpdateUserVault> = Vec::new();
+
+        let mint_range = 0..mint_number;
+        for _ in mint_range {
+            user_accounts.push(UpdateUserVault {
+                user_pub_key: *ctx.accounts.payer.key,
+            });
+
+        }
+
+        vault::cpi::add_user_into_vault(vault_cpi_ctx, user_accounts.to_vec())?;     
+
+        
         let router_config = &mut router_account.config;
         router_config.items_available = router_config
             .items_available
-            .checked_sub(1)
+            .checked_sub(mint_number)
             .ok_or(ErrorCode::ItemsUnavailableError)?;
         let router_account_data = &mut router_account.data;
 
@@ -155,7 +177,7 @@ pub mod router {
 
         sub_account.current_sub_account_index = sub_account
             .current_sub_account_index
-            .checked_add(1)
+            .checked_add(mint_number as u16)
             .ok_or(ErrorCode::SubAccountIndexIncrementError)?;
 
         emit!(MintTokenEvent {
@@ -224,13 +246,12 @@ pub struct RouterData {
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftAccountTracker {
     current_account_index: u16,       //tracks which program id to take in // 8
-    sub_accounts: Vec<NftSubAccount>, //30 * nftsubaccount size // 30 * 40
+    sub_accounts: Vec<NftSubAccount>, //40 * nftsubaccount size // 40 * 40
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftSubAccount {
     nft_sub_account: Pubkey, //32
-    //nft_sub_program_id: Pubkey,     //32
     current_sub_account_index: u16, // tracks which pubkey needs nft //8
 }
 
@@ -319,6 +340,17 @@ pub struct MintTokenEvent {
     payer_key: Pubkey,
 }
 
+#[event]
+pub struct ItemsAvailableEvent {
+    items_available : u32
+}
+
+#[event]
+pub struct SubAccountLimitEvent {
+    current_sub_account_index : u16
+}
+
+
 #[error]
 pub enum ErrorCode {
     #[msg("Account does not have correct owner!")]
@@ -350,5 +382,11 @@ pub enum ErrorCode {
     #[msg("Could not increment the sub account index")]
     SubAccountIndexIncrementError,
     #[msg("Not enough sub accounts added")]
-    NumericalUnderError
+    NumericalUnderError,
+    #[msg("Cannot mint more than max mint")]
+    MintMaxError,
+    #[msg("Not enough items available")]
+    NotEnoughItemsError,
+    #[msg("Sub account limit reached, use next sub account")]
+    SubAccountLimitError
 }
