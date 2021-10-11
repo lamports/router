@@ -1,16 +1,8 @@
 require("dotenv").config();
 import * as anchor from "@project-serum/anchor";
-import {
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-  Keypair,
-  TransactionInstruction,
-} from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, SystemProgram, Keypair } from "@solana/web3.js";
 import { assert, expect } from "chai";
-import BN from "bn.js";
-import { NftSubAccount, RouterData, Workspace, UserVaultData } from "./models";
+import { RouterData, Workspace, UserVaultData } from "./models";
 import {
   getRouterData,
   getDefaultAnchorWorkspace,
@@ -27,7 +19,7 @@ describe("MINTING NFT", async () => {
   let routerWorkspace: Workspace = null;
   let vaultWorkspace: Workspace = null;
   if (JSON.parse(process.env.USE_DEFAULT_WORKSPACE)) {
-    routerWorkspace = getDefaultAnchorWorkspace();
+    routerWorkspace = getDefaultAnchorWorkspace("router");
   } else {
     // make sure signer 2 has some sols
     // make sure signer 1 has some sols
@@ -67,53 +59,57 @@ describe("MINTING NFT", async () => {
       console.log("Generated new vault account with transaction id :: ", tx);
 
       // initialize router account
-      await routerProgram.rpc.initializeRouter({
-        accounts: {
-          routerAccount: routerAccount.publicKey,
-          payer: routerProvider.wallet.publicKey,
-          systemProgram: SystemProgram.programId,
-          wallet: routerProvider.wallet.publicKey,
-        },
-        signers: [routerAccount],
-      });
+      await routerProgram.rpc.initializeRouter(
+        vaultWorkspace.program.programId,
+        {
+          accounts: {
+            routerAccount: routerAccount.publicKey,
+            payer: routerProvider.wallet.publicKey,
+            systemProgram: SystemProgram.programId,
+            wallet: routerProvider.wallet.publicKey,
+          },
+          signers: [routerAccount],
+        }
+      );
     } catch (err) {
       console.log(err);
     }
 
-    await routerProgram.rpc.updateConfig(
-      {
-        price: null,
-        goLiveDate: new anchor.BN(Date.now() / 1000 + 10000000),
-        uuid: null,
-        itemsAvailable: 1000,
-      },
-      {
-        accounts: {
-          routerAccount: routerAccount.publicKey,
-          authority: routerProvider.wallet.publicKey,
-          wallet: routerProvider.wallet.publicKey,
-        },
-      }
-    );
-
-    const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
-    const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
-    await routerProgram.rpc.addNftSubAccount(
-      [
+    try {
+      await routerProgram.rpc.updateConfig(
         {
-          nftSubAccount: nftSubAccount,
-          nftSubProgramId: nftSubProgramId,
-          currentSubAccountIndex: 0,
+          price: null,
+          goLiveDate: new anchor.BN(Date.now() / 1000 + 10000),
+          uuid: null,
+          itemsAvailable: 1000,
         },
-      ],
-      {
-        accounts: {
-          routerAccount: routerAccount.publicKey,
-          authority: routerProvider.wallet.publicKey,
-          wallet: routerProvider.wallet.publicKey,
-        },
-      }
-    );
+        {
+          accounts: {
+            routerAccount: routerAccount.publicKey,
+            authority: routerProvider.wallet.publicKey,
+            wallet: routerProvider.wallet.publicKey,
+          },
+        }
+      );
+      const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
+      await routerProgram.rpc.addNftSubAccount(
+        [
+          {
+            nftSubAccount: nftSubAccount,
+            currentSubAccountIndex: 0,
+          },
+        ],
+        {
+          accounts: {
+            routerAccount: routerAccount.publicKey,
+            authority: routerProvider.wallet.publicKey,
+            wallet: routerProvider.wallet.publicKey,
+          },
+        }
+      );
+    } catch (err) {
+      console.log(err);
+    }
 
     anchor.setProvider(routerProvider);
   });
@@ -165,6 +161,8 @@ describe("MINTING NFT", async () => {
           },
         }
       );
+
+      //debugger;
 
       await routerProgram.rpc.addUserForMintingNft({
         accounts: {
@@ -288,7 +286,7 @@ describe("MINTING NFT", async () => {
 
       // MInt token Event test
       assert.ok(slot > 0);
-      assert.ok(event.currentAccountIndex === 1);
+      assert.ok(event.currentAccountIndex === 0);
       assert.ok(event.payerKey.equals(signer1Wallet.publicKey));
     } catch (err) {
       console.log(err);

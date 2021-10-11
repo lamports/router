@@ -12,12 +12,16 @@ pub mod utils;
 #[program]
 pub mod router {
     use super::*;
-    pub fn initialize_router(ctx: Context<InitializeRouter>) -> ProgramResult {
+    pub fn initialize_router(
+        ctx: Context<InitializeRouter>,
+        nft_sub_program_id: Pubkey,
+    ) -> ProgramResult {
         let router_account = &mut ctx.accounts.router_account;
         let authority = &mut ctx.accounts.payer;
         router_account.authority = *authority.key;
         router_account.wallet = *ctx.accounts.wallet.key;
-        
+        router_account.nft_sub_program_id = nft_sub_program_id;
+        router_account.data.current_account_index = 0;
         //router_account.to_account_info().da
         Ok(())
     }
@@ -96,10 +100,11 @@ pub mod router {
         }
 
         let router_data: &NftAccountTracker = &router_account.clone().data;
+
+        require!(router_data.sub_accounts.len() > 0, ErrorCode::NftSubAccountError);
+
         let sub_account: &NftSubAccount = &router_data.sub_accounts[router_data
             .current_account_index
-            .checked_sub(1)
-            .ok_or(ErrorCode::NumericalOverflowError)?
             as usize];
 
         // check if the account could be added into the vault!!
@@ -141,18 +146,17 @@ pub mod router {
         router_config.items_available = router_config
             .items_available
             .checked_sub(1)
-            .ok_or(ErrorCode::NumericalOverflowError)?;
+            .ok_or(ErrorCode::ItemsUnavailableError)?;
         let router_account_data = &mut router_account.data;
-        let sub_account = &mut router_account_data.sub_accounts[router_data
-            .current_account_index
-            .checked_sub(1)
-            .ok_or(ErrorCode::NumericalOverflowError)?
-            as usize];
+
+        require!(router_account_data.sub_accounts.len()  > 0, ErrorCode::NftSubAccountError);
+
+        let sub_account = &mut router_account_data.sub_accounts[router_data.current_account_index as usize];
 
         sub_account.current_sub_account_index = sub_account
             .current_sub_account_index
             .checked_add(1)
-            .ok_or(ErrorCode::NumericalOverflowError)?;
+            .ok_or(ErrorCode::SubAccountIndexIncrementError)?;
 
         emit!(MintTokenEvent {
             current_account_index: router_data.current_account_index,
@@ -199,7 +203,7 @@ pub mod router {
 
 #[derive(Accounts)]
 pub struct InitializeRouter<'info> {
-    #[account(init, payer = payer, space = (8 + 30 *72 + 32 + 32 + 46 +8 ) as usize)]
+    #[account(init, payer = payer, space = (8 + 40 *40 + 32 + 32 + 46 +32+8 ) as usize)]
     router_account: ProgramAccount<'info, RouterData>,
     payer: AccountInfo<'info>,
     system_program: AccountInfo<'info>,
@@ -210,22 +214,23 @@ pub struct InitializeRouter<'info> {
 #[account]
 #[derive(Default)]
 pub struct RouterData {
-    data: NftAccountTracker, // nft tracker sum = 30 *72 + 8
-    authority: Pubkey,       // 32
-    config: ConfigData,      // config sum = 46
-    wallet: Pubkey,          // 32
+    data: NftAccountTracker,    // nft tracker sum = 40 *40 + 8
+    authority: Pubkey,          // 32
+    config: ConfigData,         // config sum = 46
+    wallet: Pubkey,             // 32
+    nft_sub_program_id: Pubkey, //32
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftAccountTracker {
     current_account_index: u16,       //tracks which program id to take in // 8
-    sub_accounts: Vec<NftSubAccount>, //30 * nftsubaccount size // 30 * 72
+    sub_accounts: Vec<NftSubAccount>, //30 * nftsubaccount size // 30 * 40
 }
 
 #[derive(Default, AnchorDeserialize, AnchorSerialize, Clone)]
 pub struct NftSubAccount {
-    nft_sub_account: Pubkey,        //32
-    nft_sub_program_id: Pubkey,     //32
+    nft_sub_account: Pubkey, //32
+    //nft_sub_program_id: Pubkey,     //32
     current_sub_account_index: u16, // tracks which pubkey needs nft //8
 }
 
@@ -338,4 +343,12 @@ pub enum ErrorCode {
     SubAccountIsFull,
     #[msg("Numerical Overflow")]
     NumericalOverflowError,
+    #[msg("Items Unavailable")]
+    ItemsUnavailableError,
+    #[msg("Could not fetch next sub account")]
+    NftSubAccountError,
+    #[msg("Could not increment the sub account index")]
+    SubAccountIndexIncrementError,
+    #[msg("Not enough sub accounts added")]
+    NumericalUnderError
 }

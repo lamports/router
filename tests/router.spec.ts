@@ -1,15 +1,7 @@
 require("dotenv").config();
 import * as anchor from "@project-serum/anchor";
-import {
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-  Keypair,
-  TransactionInstruction,
-} from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, SystemProgram, Keypair } from "@solana/web3.js";
 import { assert, expect } from "chai";
-import BN from "bn.js";
 import { NftSubAccount, RouterData, Workspace } from "./models";
 import {
   getRouterData,
@@ -25,21 +17,31 @@ describe("router", () => {
 
   let program: anchor.Program = null;
   let provider: anchor.Provider = null;
-  let workspace: Workspace = null;
+  let routerWorkspace: Workspace = null;
+
+  let vaultWorkspace: Workspace = null;
+
   if (JSON.parse(process.env.USE_DEFAULT_WORKSPACE)) {
-    workspace = getDefaultAnchorWorkspace();
+    routerWorkspace = getDefaultAnchorWorkspace("router");
+    vaultWorkspace = getDefaultAnchorWorkspace("vault");
   } else {
     // make sure signer 2 has some sols
     // make sure signer 1 has some sols
-    workspace = getCustomWorkspace(
+    routerWorkspace = getCustomWorkspace(
       signer2Wallet,
       process.env.ROUTER_IDL_PATH,
       process.env.ROUTER_PROGRAM_ID
     );
+
+    vaultWorkspace = getCustomWorkspace(
+      signer2Wallet,
+      process.env.VAULT_IDL_PATH,
+      process.env.VAULT_PROGRAM_ID
+    );
   }
 
-  program = workspace.program;
-  provider = workspace.provider;
+  program = routerWorkspace.program;
+  provider = routerWorkspace.provider;
 
   const routerAccount: Keypair = anchor.web3.Keypair.generate();
   const priceInLamports = 4 * LAMPORTS_PER_SOL;
@@ -51,15 +53,18 @@ describe("router", () => {
   it("Is initialized!", async () => {
     // Add your test here.
 
-    const tx = await program.rpc.initializeRouter({
-      accounts: {
-        routerAccount: routerAccount.publicKey,
-        payer: provider.wallet.publicKey,
-        systemProgram: SystemProgram.programId,
-        wallet: provider.wallet.publicKey,
-      },
-      signers: [routerAccount],
-    });
+    const tx = await program.rpc.initializeRouter(
+      vaultWorkspace.program.programId,
+      {
+        accounts: {
+          routerAccount: routerAccount.publicKey,
+          payer: provider.wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+          wallet: provider.wallet.publicKey,
+        },
+        signers: [routerAccount],
+      }
+    );
 
     const routerData: RouterData = await getRouterData(program, routerAccount);
     assert.ok(routerData.authority.equals(provider.wallet.publicKey));
@@ -97,12 +102,10 @@ describe("router", () => {
 
   it("should add nft account into the vault router", async () => {
     const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
-    const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
     const tx = await program.rpc.addNftSubAccount(
       [
         {
           nftSubAccount: nftSubAccount,
-          nftSubProgramId: nftSubProgramId,
           currentSubAccountIndex: 0,
         },
       ],
@@ -119,9 +122,6 @@ describe("router", () => {
     assert.ok(routerData.data.subAccounts.length === 1);
     assert.ok(
       routerData.data.subAccounts[0].nftSubAccount.equals(nftSubAccount)
-    );
-    assert.ok(
-      routerData.data.subAccounts[0].nftSubProgramId.equals(nftSubProgramId)
     );
 
     //console.log(routerData);
@@ -156,7 +156,6 @@ describe("router", () => {
     for (let i = 0; i < 15; i++) {
       let nftSubAccount: NftSubAccount = {
         nftSubAccount: anchor.web3.Keypair.generate().publicKey,
-        nftSubProgramId: anchor.web3.Keypair.generate().publicKey,
         currentSubAccountIndex: 240, // because each account can store 240 pubkeys
       };
 
@@ -180,7 +179,6 @@ describe("router", () => {
     for (let i = 0; i < 15; i++) {
       let nftSubAccount: NftSubAccount = {
         nftSubAccount: anchor.web3.Keypair.generate().publicKey,
-        nftSubProgramId: anchor.web3.Keypair.generate().publicKey,
         currentSubAccountIndex: 100,
       };
 
@@ -196,6 +194,30 @@ describe("router", () => {
 
     const routerData: RouterData = await getRouterData(program, routerAccount);
     assert.ok(routerData.data.subAccounts.length === 31);
+  });
+
+  it("should be able to add another 10 accounts into the router vault", async () => {
+    let nftSubAccounts: Array<NftSubAccount> = [];
+
+    for (let i = 0; i < 15; i++) {
+      let nftSubAccount: NftSubAccount = {
+        nftSubAccount: anchor.web3.Keypair.generate().publicKey,
+        currentSubAccountIndex: 100,
+      };
+
+      nftSubAccounts.push(nftSubAccount);
+    }
+
+    const tx = await program.rpc.addNftSubAccount(nftSubAccounts, {
+      accounts: {
+        routerAccount: routerAccount.publicKey,
+        authority: provider.wallet.publicKey,
+      },
+    });
+
+    const routerData: RouterData = await getRouterData(program, routerAccount);
+    console.log(routerData.data.subAccounts.length);
+    assert.ok(routerData.data.subAccounts.length === 46);
   });
 
   describe("Close Sub Account", async () => {
@@ -222,8 +244,6 @@ describe("router", () => {
         //console.log("Your transaction signature", tx);
         console.log("Generated new vault account with transaction id :: ", tx);
 
-        const nftSubAccount = anchor.web3.Keypair.generate().publicKey;
-        const nftSubProgramId = anchor.web3.Keypair.generate().publicKey;
         await program.rpc.addNftSubAccount(
           [
             {
