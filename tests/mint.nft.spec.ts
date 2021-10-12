@@ -306,4 +306,79 @@ describe("MINTING NFT", async () => {
     assert.isFalse(isError, errorMsg);
     assert.isNull(errorMsg);
   });
+
+  it("Should not allow minting if less items available", async () => {
+    let isError = false;
+    let errorMsg = null;
+    try {
+      const connection = anchor.getProvider().connection;
+      await routerProgram.rpc.updateConfig(
+        {
+          price: 4 * LAMPORTS_PER_SOL,
+          goLiveDate: new anchor.BN(Date.now() / 1000 - 10000000),
+          uuid: null,
+          itemsAvailable: 1,
+        },
+        {
+          accounts: {
+            routerAccount: routerAccount.publicKey,
+            authority: routerProvider.wallet.publicKey,
+            wallet: routerProvider.wallet.publicKey,
+          },
+        }
+      );
+
+      const beforeReceiverBalance = await connection.getBalance(
+        signer2Wallet.publicKey
+      );
+      const beforePayerBalance = await connection.getBalance(
+        signer1Wallet.publicKey
+      );
+      const beforeRouterData: RouterData = await getRouterData(
+        routerProgram,
+        routerAccount
+      );
+
+      // check if the MintTokenEvent is fired
+
+      await routerProgram.rpc.addUserForMintingNft(2, {
+        accounts: {
+          routerAccount: routerAccount.publicKey,
+          authority: routerProvider.wallet.publicKey,
+          vaultAccount: vaultAccount.publicKey,
+          vaultProgram: vaultProgram.programId,
+          payer: signer1Wallet.publicKey,
+          wallet: routerProvider.wallet.publicKey,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+          systemProgram: SystemProgram.programId,
+        },
+        signers: [signer1Wallet],
+      });
+
+      const routerData: RouterData = await getRouterData(
+        routerProgram,
+        routerAccount
+      );
+      // console.log(routerData);
+      const afterReceiverBalance = await connection.getBalance(
+        signer2Wallet.publicKey
+      );
+      const afterPayerBalance = await connection.getBalance(
+        signer1Wallet.publicKey
+      );
+      // check if balances have been transferred
+      console.log(routerData);
+    } catch (err) {
+      console.log(err);
+      console.log(
+        " This error occurs because we are not connected to localnet/dev/test/prod"
+      );
+      isError = true;
+      errorMsg = err;
+    }
+
+    assert.isTrue(isError, errorMsg);
+    assert.isNotNull(errorMsg);
+  });
 });

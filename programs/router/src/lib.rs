@@ -82,22 +82,13 @@ pub mod router {
         }
 
         if router_account.data.sub_accounts.len() >= 46
-            && router_account
-                .data
-                .sub_accounts
-                .last()
-                .as_ref()
-                .unwrap()
-                .current_sub_account_index
-                > 240 
+            && router_account.data.sub_accounts.last().as_ref().unwrap().current_sub_account_index > 240 
         {
             return Err(ErrorCode::SaleIsOver.into());
         }
 
         if router_account.config.items_available  < mint_number  {
-            emit!(ItemsAvailableEvent{
-                items_available : router_account.config.items_available
-            });
+            msg!("Not Enough Items available");
             return Err(ErrorCode::NotEnoughItemsError.into());
         }
 
@@ -111,7 +102,11 @@ pub mod router {
 
         let router_data: &NftAccountTracker = &router_account.clone().data;
 
-        require!(router_data.sub_accounts.len() > 0, ErrorCode::NftSubAccountError);
+        //require!(router_data.sub_accounts.len() > 0, ErrorCode::NftSubAccountError);
+
+        if router_data.sub_accounts.len() <= 0 {
+            return Err(ErrorCode::NoSubAccountError.into());
+        } 
 
         let sub_account: &NftSubAccount = &router_data.sub_accounts[router_data.current_account_index as usize];
 
@@ -225,7 +220,7 @@ pub mod router {
 
 #[derive(Accounts)]
 pub struct InitializeRouter<'info> {
-    #[account(init, payer = payer, space = (8 + 40 *40 + 32 + 32 + 46 +32+8 ) as usize)]
+    #[account(init, payer = payer, space = (8 + 50 *40 + 32 + 32 + 46 +32+8 ) as usize)]
     router_account: ProgramAccount<'info, RouterData>,
     payer: AccountInfo<'info>,
     system_program: AccountInfo<'info>,
@@ -388,5 +383,7 @@ pub enum ErrorCode {
     #[msg("Not enough items available")]
     NotEnoughItemsError,
     #[msg("Sub account limit reached, use next sub account")]
-    SubAccountLimitError
+    SubAccountLimitError,
+    #[msg("No sub accounts present to add user")]
+    NoSubAccountError
 }

@@ -7,9 +7,10 @@ for i in $(seq 10); do solana-keygen new --no-passphrase -so "vault_secret_${i}.
 
 ## Setup
 
-1. Find relevant pubkeys using `solana-keygen pubkey <json-file>`
-2. Run anchor build and anchor deploy
-3. Next fund the program wallet account -
+1. Deploy using program_wallet --> anchor build && anchor deploy --provider.wallet ../minter/env/program_wallet.json
+2. Find relevant pubkeys using `solana-keygen pubkey <json-file>`
+3. Run anchor build and anchor deploy
+4. Next fund the program wallet account -
    `solana airdrop 10 GjQBdQ78Qdx7G6aZyq3svr4CmFackaEEWF9MHkPLawje`
-4. Next fund the external wallet with some amount because of the minimum balance constraint -
+5. Next fund the external wallet with some amount because of the minimum balance constraint - otherwise we will get 143 raw constraint violation
    `solana airdrop 1 FNUgRQxnWZeuxaiwXGanzEAZyJasMg95Tw3YHap7wHke`
