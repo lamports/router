@@ -65,7 +65,7 @@ pub struct AddUserVault<'info> {
     #[account(mut, has_one=authority, constraint = user_vault_account.authority == *authority.key && authority.key != &Pubkey::new_from_array([0u8; 32]))]
     //#[account(mut)]
     pub user_vault_account: Account<'info, UserVaultAccount>,
-    pub authority: Signer<'info>,
+    pub authority: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]

@@ -134,7 +134,7 @@ pub mod router {
             &system_instruction::transfer(
                 &ctx.accounts.payer.key,
                 ctx.accounts.wallet.key,
-                router_account.config.price,
+                router_account.config.price * mint_number as u64,
             ),
             &[
                 ctx.accounts.payer.clone(),
@@ -300,8 +300,8 @@ pub struct MintNft<'info> {
     #[account(mut)]
     vault_account: Account<'info, UserVaultAccount>,
     vault_program: Program<'info, Vault>,
-    authority: Signer<'info>,
-    #[account(mut, signer)]
+    authority: AccountInfo<'info>,
+    #[account(mut)]
     payer: AccountInfo<'info>,
     #[account(mut)]
     wallet: AccountInfo<'info>,
