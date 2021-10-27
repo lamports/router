@@ -175,8 +175,8 @@ pub mod router {
             ErrorCode::NftSubAccountError
         );
 
-        let sub_account =
-            &mut router_account_data.sub_accounts[router_data.current_account_index as usize];
+        // let sub_account =
+        //     &mut router_account_data.sub_accounts[router_data.current_account_index as usize];
 
         // sub_account.current_sub_account_index = sub_account
         //     .current_sub_account_index
