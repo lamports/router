@@ -273,7 +273,7 @@ describe("MINTING NFT", async () => {
       assert.ok(routerData.config.itemsAvailable === 998);
       assert.ok(
         routerData.data.subAccounts[0].currentSubAccountIndex ===
-          beforeRouterData.data.subAccounts[0].currentSubAccountIndex + 2
+          beforeRouterData.data.subAccounts[0].currentSubAccountIndex
       );
 
       const vaultData: UserVaultData = await getUserVaultData(

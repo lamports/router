@@ -220,6 +220,40 @@ describe("router", () => {
     assert.ok(routerData.data.subAccounts.length === 46);
   });
 
+  describe("Sub Account ", async () => {
+    it("should increment by one", async () => {
+      try {
+        const beforeRouterData: RouterData = await getRouterData(
+          program,
+          routerAccount
+        );
+        const beforeSubAccountIndex =
+          beforeRouterData.data.subAccounts[
+            beforeRouterData.data.currentAccountIndex
+          ].currentSubAccountIndex;
+
+        await program.rpc.incrementSubAccountIndexByOne({
+          accounts: {
+            routerAccount: routerAccount.publicKey,
+            authority: provider.wallet.publicKey,
+          },
+        });
+
+        const routerData: RouterData = await getRouterData(
+          program,
+          routerAccount
+        );
+        const afterSubAccountIndex =
+          routerData.data.subAccounts[beforeRouterData.data.currentAccountIndex]
+            .currentSubAccountIndex;
+        assert.ok(afterSubAccountIndex === beforeSubAccountIndex + 1);
+      } catch (err) {
+        console.log("INCREMENT PROBLEM");
+        console.log(err);
+      }
+    });
+  });
+
   describe("Close Sub Account", async () => {
     const workspace: Workspace = getCustomWorkspace(
       signer2Wallet,

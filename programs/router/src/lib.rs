@@ -175,13 +175,13 @@ pub mod router {
             ErrorCode::NftSubAccountError
         );
 
-        let sub_account =
-            &mut router_account_data.sub_accounts[router_data.current_account_index as usize];
+        // let sub_account =
+        //     &mut router_account_data.sub_accounts[router_data.current_account_index as usize];
 
-        sub_account.current_sub_account_index = sub_account
-            .current_sub_account_index
-            .checked_add(mint_number as u16)
-            .ok_or(ErrorCode::SubAccountIndexIncrementError)?;
+        // sub_account.current_sub_account_index = sub_account
+        //     .current_sub_account_index
+        //     .checked_add(mint_number as u16)
+        //     .ok_or(ErrorCode::SubAccountIndexIncrementError)?;
 
         emit!(MintTokenEvent {
             current_account_index: router_data.current_account_index,
@@ -198,6 +198,27 @@ pub mod router {
             .current_account_index
             .checked_add(1)
             .ok_or(ErrorCode::NumericalOverflowError)?;
+
+        Ok(())
+    }
+
+    pub fn increment_sub_account_index_by_one(ctx: Context<UpdateNftSubAccount>) -> ProgramResult {
+        let router_account = &mut ctx.accounts.router_account;
+        let authority = ctx.accounts.authority.to_account_info();
+        //router_account.data.current_account_index = input_data.len() as u16;
+
+        if router_account.authority != *authority.key {
+            return Err(ErrorCode::NotAuthorized.into());
+        }
+
+        let current_account_index = router_account.data.current_account_index;
+
+        let nft_sub_account = &mut router_account.data.sub_accounts[current_account_index as usize];
+
+        nft_sub_account.current_sub_account_index = nft_sub_account
+            .current_sub_account_index
+            .checked_add(1)
+            .ok_or(ErrorCode::SubAccountIndexIncrementError)?;
 
         Ok(())
     }
