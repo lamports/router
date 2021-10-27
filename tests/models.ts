@@ -9,7 +9,7 @@ export interface RouterData {
 }
 
 export interface NftAccountTracker {
-  currentProgramIndex: number;
+  currentAccountIndex: number;
   subAccounts: Array<NftSubAccount>;
 }
 
