@@ -168,20 +168,6 @@ pub mod router {
             .items_available
             .checked_sub(mint_number)
             .ok_or(ErrorCode::ItemsUnavailableError)?;
-        let router_account_data = &mut router_account.data;
-
-        require!(
-            router_account_data.sub_accounts.len() > 0,
-            ErrorCode::NftSubAccountError
-        );
-
-        // let sub_account =
-        //     &mut router_account_data.sub_accounts[router_data.current_account_index as usize];
-
-        // sub_account.current_sub_account_index = sub_account
-        //     .current_sub_account_index
-        //     .checked_add(mint_number as u16)
-        //     .ok_or(ErrorCode::SubAccountIndexIncrementError)?;
 
         emit!(MintTokenEvent {
             current_account_index: router_data.current_account_index,
